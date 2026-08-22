@@ -89,3 +89,4 @@ def _fake_cash_sales(date: str, branch: str) -> list:
         items.append({"odoo_ref": ref, "customer_name": rng.choice(customers),
                       "sale_type": t, "odoo_amount": round(rng.uniform(500, 25000), 2)})
     return items
+
