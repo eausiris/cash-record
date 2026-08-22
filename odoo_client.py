@@ -27,80 +27,89 @@ def _branch_prefix(branch: str) -> str:
 
 
 def get_cash_sales(date: str, branch: str) -> list:
-    uid, mdl = _get_uid_and_mdl()
-    db  = settings.ODOO_DB
-    pwd = settings.ODOO_PASSWORD
-    dt_start, dt_end = _date_range_utc(date)
-    prefix = _branch_prefix(branch)
-    items = []
+    try:
+        uid, mdl = _get_uid_and_mdl()
+        db  = settings.ODOO_DB
+        pwd = settings.ODOO_PASSWORD
+        dt_start, dt_end = _date_range_utc(date)
+        prefix = _branch_prefix(branch)
+        items = []
 
-    configs = mdl.execute_kw(db, uid, pwd, "pos.config", "search_read",
-        [[["name", "ilike", prefix]]], {"fields": ["id"]})
-    config_ids = [c["id"] for c in configs]
+        configs = mdl.execute_kw(db, uid, pwd, "pos.config", "search_read",
+            [[["name", "ilike", prefix]]], {"fields": ["id"]})
+        config_ids = [c["id"] for c in configs]
 
-    if config_ids:
-        non_cash_payments = mdl.execute_kw(db, uid, pwd, "pos.payment", "search_read",
-            [[["is_cash_count", "=", False],
-              ["pos_order_id.config_id", "in", config_ids],
-              ["pos_order_id.date_order", ">=", dt_start],
-              ["pos_order_id.date_order", "<", dt_end]]],
-            {"fields": ["pos_order_id"], "limit": 1000})
-        non_cash_order_ids = list({p["pos_order_id"][0] for p in non_cash_payments if p.get("pos_order_id")})
+        if config_ids:
+            non_cash_payments = mdl.execute_kw(db, uid, pwd, "pos.payment", "search_read",
+                [[["is_cash_count", "=", False],
+                  ["pos_order_id.config_id", "in", config_ids],
+                  ["pos_order_id.date_order", ">=", dt_start],
+                  ["pos_order_id.date_order", "<", dt_end]]],
+                {"fields": ["pos_order_id"], "limit": 1000})
+            non_cash_order_ids = list({p["pos_order_id"][0] for p in non_cash_payments if p.get("pos_order_id")})
 
-        domain = [
-            ["config_id", "in", config_ids],
-            ["date_order", ">=", dt_start],
-            ["date_order", "<",  dt_end],
-            ["state", "in", ["done", "paid", "invoiced"]],
-        ]
-        if non_cash_order_ids:
-            domain.append(["id", "not in", non_cash_order_ids])
+            domain = [
+                ["config_id", "in", config_ids],
+                ["date_order", ">=", dt_start],
+                ["date_order", "<",  dt_end],
+                ["state", "in", ["done", "paid", "invoiced"]],
+            ]
+            if non_cash_order_ids:
+                domain.append(["id", "not in", non_cash_order_ids])
 
-        pos_orders = mdl.execute_kw(db, uid, pwd, "pos.order", "search_read",
-            [domain],
-            {"fields": ["name", "partner_id", "amount_total"], "limit": 500,
-             "order": "date_order asc"})
-        for o in pos_orders:
+            pos_orders = mdl.execute_kw(db, uid, pwd, "pos.order", "search_read",
+                [domain],
+                {"fields": ["name", "partner_id", "amount_total"], "limit": 500,
+                 "order": "date_order asc"})
+            for o in pos_orders:
+                items.append({
+                    "odoo_ref":      o["name"],
+                    "customer_name": o["partner_id"][1] if o.get("partner_id") else "ลูกค้าทั่วไป",
+                    "sale_type":     "pos",
+                    "odoo_amount":   o.get("amount_total", 0),
+                })
+
+        payments = mdl.execute_kw(db, uid, pwd, "account.payment", "search_read",
+            [[["date", "=", date],
+              ["payment_type", "=", "inbound"],
+              ["journal_id.type", "=", "cash"],
+              ["state", "=", "posted"]]],
+            {"fields": ["name", "partner_id", "amount"], "limit": 200})
+        for p in payments:
             items.append({
-                "odoo_ref":      o["name"],
-                "customer_name": o["partner_id"][1] if o.get("partner_id") else "ลูกค้าทั่วไป",
-                "sale_type":     "pos",
-                "odoo_amount":   o.get("amount_total", 0),
+                "odoo_ref":      p["name"],
+                "customer_name": p["partner_id"][1] if p.get("partner_id") else "-",
+                "sale_type":     "invoice",
+                "odoo_amount":   p.get("amount", 0),
             })
 
-    payments = mdl.execute_kw(db, uid, pwd, "account.payment", "search_read",
-        [[["date", "=", date],
-          ["payment_type", "=", "inbound"],
-          ["journal_id.type", "=", "cash"],
-          ["state", "=", "posted"]]],
-        {"fields": ["name", "partner_id", "amount"], "limit": 200})
-    for p in payments:
-        items.append({
-            "odoo_ref":      p["name"],
-            "customer_name": p["partner_id"][1] if p.get("partner_id") else "-",
-            "sale_type":     "invoice",
-            "odoo_amount":   p.get("amount", 0),
-        })
+        return items
 
-    return items
+    except Exception as e:
+        print(f"Odoo get_cash_sales error: {e}")
+        raise
 
 
 def get_order_lines(odoo_ref: str) -> list:
-    uid, mdl = _get_uid_and_mdl()
-    db  = settings.ODOO_DB
-    pwd = settings.ODOO_PASSWORD
-    orders = mdl.execute_kw(db, uid, pwd, "pos.order", "search_read",
-        [[["name", "=", odoo_ref]]],
-        {"fields": ["id"], "limit": 1})
-    if not orders:
-        return []
-    order_id = orders[0]["id"]
-    lines = mdl.execute_kw(db, uid, pwd, "pos.order.line", "search_read",
-        [[["order_id", "=", order_id]]],
-        {"fields": ["product_id", "qty", "price_unit", "price_subtotal"], "limit": 100})
-    return [{
-        "product_name": l["product_id"][1] if l.get("product_id") else "-",
-        "qty": l.get("qty", 0),
-        "price_unit": l.get("price_unit", 0),
-        "price_subtotal": l.get("price_subtotal", 0),
-    } for l in lines]
+    try:
+        uid, mdl = _get_uid_and_mdl()
+        db  = settings.ODOO_DB
+        pwd = settings.ODOO_PASSWORD
+        orders = mdl.execute_kw(db, uid, pwd, "pos.order", "search_read",
+            [[["name", "=", odoo_ref]]],
+            {"fields": ["id"], "limit": 1})
+        if not orders:
+            return []
+        order_id = orders[0]["id"]
+        lines = mdl.execute_kw(db, uid, pwd, "pos.order.line", "search_read",
+            [[["order_id", "=", order_id]]],
+            {"fields": ["product_id", "qty", "price_unit", "price_subtotal"], "limit": 100})
+        return [{
+            "product_name": l["product_id"][1] if l.get("product_id") else "-",
+            "qty": l.get("qty", 0),
+            "price_unit": l.get("price_unit", 0),
+            "price_subtotal": l.get("price_subtotal", 0),
+        } for l in lines]
+    except Exception as e:
+        print(f"get_order_lines error: {e}")
+        raise
