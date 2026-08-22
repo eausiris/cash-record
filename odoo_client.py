@@ -66,14 +66,24 @@ def get_cash_sales(date: str, branch: str) -> list:
 
             pos_orders = mdl.execute_kw(db, uid, pwd, "pos.order", "search_read",
                 [domain],
-                {"fields": ["name", "partner_id", "amount_total"], "limit": 500,
+                {"fields": ["name", "partner_id", "amount_total", "date_order"], "limit": 500,
                  "order": "date_order asc"})
             for o in pos_orders:
+                # แปลง UTC → UTC+7
+                raw_dt = o.get("date_order", "")
+                try:
+                    from datetime import timezone
+                    dt_utc = datetime.strptime(raw_dt, "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc)
+                    dt_local = dt_utc + timedelta(hours=7)
+                    bill_time = dt_local.strftime("%H:%M")
+                except Exception:
+                    bill_time = ""
                 items.append({
                     "odoo_ref":      o["name"],
                     "customer_name": o["partner_id"][1] if o.get("partner_id") else "ลูกค้าทั่วไป",
                     "sale_type":     "pos",
                     "odoo_amount":   o.get("amount_total", 0),
+                    "bill_time":     bill_time,
                 })
 
         payments = mdl.execute_kw(db, uid, pwd, "account.payment", "search_read",

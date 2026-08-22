@@ -300,20 +300,21 @@
           </div>
         </div>
         <div style="overflow-x:auto;">
-          <table class="tbl" style="min-width:700px;">
+          <table class="tbl" style="min-width:860px;">
             <thead>
               <tr>
                 <th style="width:36px;"></th>
                 <th>เลขที่อ้างอิง</th>
+                <th style="width:70px;">เวลา</th>
                 <th>ลูกค้า</th>
                 <th>ประเภท</th>
                 <th class="num">ยอด Odoo</th>
                 <th class="num" style="width:140px;">ยอดที่บันทึก</th>
-                <th style="width:220px;">หมายเหตุ</th>
+                <th style="width:240px;">หมายเหตุ</th>
               </tr>
             </thead>
             <tbody id="sales-odoo-tbody">
-              <tr><td colspan="7" style="text-align:center;color:#aaa;padding:20px;">กำลังโหลด...</td></tr>
+              <tr><td colspan="8" style="text-align:center;color:#aaa;padding:20px;">กำลังโหลด...</td></tr>
             </tbody>
           </table>
         </div>
@@ -777,6 +778,7 @@ async function renderOdooTable() {
           <div style="font-size:13px;color:#555;">${item.odoo_ref}</div>
           ${item.sale_type==='pos'?`<button class="btn btn-sm" style="margin-top:4px;padding:3px 8px;font-size:12px;background:#fff8e7;color:#c47c00;border:1px solid #f8af3c;" onclick="showOrderLines('${item.odoo_ref}')">🛍 ดูสินค้า</button>`:''}
         </td>
+        <td style="font-size:14px;color:#555;text-align:center;">${item.bill_time||'-'}</td>
         <td style="font-size:14px;">${item.customer_name}</td>
         <td><span class="badge ${item.sale_type==='pos'?'badge-info':'badge-gray'}" style="font-size:13px;">${item.sale_type==='pos'?'POS':'Invoice'}</span></td>
         <td class="num" style="font-weight:500;font-size:15px;">${fmt(item.odoo_amount)}</td>
