@@ -19,7 +19,7 @@
   .nav-logout:hover { background: #f5f5f0; }
 
   /* LAYOUT */
-  .page { max-width: 900px; margin: 0 auto; padding: 28px 20px; }
+  .page { max-width: 1300px; margin: 0 auto; padding: 28px 20px; }
   .page-hidden { display: none !important; }
 
   /* LOGIN */
@@ -273,7 +273,7 @@
         <div style="display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;">
           <div class="form-field" style="margin-bottom:0;">
             <label>วันที่</label>
-            <input type="date" lang="en-GB" id="sales-date" style="width:160px;" />
+            <input type="text" id="sales-date" placeholder="DD/MM/YYYY" style="width:140px;" />
           </div>
           <div class="form-field" style="margin-bottom:0;">
             <label>สาขา</label>
@@ -299,8 +299,8 @@
             <button class="btn btn-success btn-sm" onclick="confirmSales()">✅ ยืนยันรายการที่เลือก</button>
           </div>
         </div>
-        <div style="overflow-x:auto;">
-          <table class="tbl" style="min-width:860px;">
+        <div>
+          <table class="tbl">
             <thead>
               <tr>
                 <th style="width:36px;"></th>
@@ -385,7 +385,7 @@
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
             <div class="form-field" style="margin-bottom:0;display:flex;align-items:center;gap:8px;">
               <label style="white-space:nowrap;font-size:13px;color:#555;font-weight:500;">วันที่นำฝาก</label>
-              <input type="date" lang="en-GB" id="dep-date" style="width:160px;" />
+              <input type="text" id="dep-date" placeholder="DD/MM/YYYY" style="width:140px;" />
             </div>
             <button class="btn btn-secondary btn-sm" onclick="printPendingSelection()">🖨️ พิมพ์รายการที่เลือก</button>
             <button class="btn btn-success btn-sm" onclick="confirmDeposit()">✅ บันทึกการนำฝาก</button>
@@ -411,7 +411,7 @@
           <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
             <div class="form-field" style="margin-bottom:0;">
               <label style="font-size:12px;">วันที่นำฝาก</label>
-              <input type="date" lang="en-GB" id="hist-dep-date" style="width:148px;font-size:13px;" oninput="renderDoneDeposits()" />
+              <input type="text" id="hist-dep-date" placeholder="DD/MM/YYYY" style="width:140px;font-size:13px;" oninput="renderDoneDeposits()" />
             </div>
             <div class="form-field" style="margin-bottom:0;">
               <label style="font-size:12px;">เลขที่เอกสาร</label>
@@ -457,7 +457,7 @@
         <div style="display:flex;align-items:flex-end;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
           <div class="form-field" style="margin-bottom:0;">
             <label style="font-size:12px;">วันที่</label>
-            <input type="date" lang="en-GB" id="hist-date" style="width:148px;font-size:13px;" oninput="renderHistoryTab()" />
+            <input type="text" id="hist-date" placeholder="DD/MM/YYYY" style="width:140px;font-size:13px;" oninput="renderHistoryTab()" />
           </div>
           <div class="form-field" style="margin-bottom:0;">
             <label style="font-size:12px;">สาขา</label>
@@ -602,6 +602,23 @@ const API = '';
 let token = null;
 let currentUser = null;
 let isAdmin = false;
+
+// Date helpers: dd/mm/yyyy <-> yyyy-mm-dd
+function isoToDMY(iso) {
+  if (!iso) return '';
+  const [y,m,d] = iso.split('-');
+  return `${d}/${m}/${y}`;
+}
+function dmyToISO(dmy) {
+  if (!dmy) return '';
+  const parts = dmy.split('/');
+  if (parts.length !== 3) return dmy; // fallback
+  const [d,m,y] = parts;
+  return `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+}
+function getDateISO(id) {
+  return dmyToISO((document.getElementById(id)?.value || '').trim());
+}
 let depFilter = 'all';
 let odooItems = [];
 let pendingGroups = [];
@@ -652,8 +669,8 @@ async function doLogin() {
     document.getElementById('nav-user-label').textContent = data.full_name || data.username;
     document.getElementById('tab-btn-users').style.display = isAdmin ? '' : 'none';
     const today = new Date().toISOString().split('T')[0];
-    document.getElementById('sales-date').value = today;
-    document.getElementById('dep-date').value = today;
+    document.getElementById('sales-date').value = isoToDMY(today);
+    document.getElementById('dep-date').value = isoToDMY(today);
     document.getElementById('login-page').style.display = 'none';
     document.getElementById('app-page').classList.remove('page-hidden');
     localStorage.setItem('cr_token', data.access_token);
@@ -689,8 +706,8 @@ function doLogout() {
     document.getElementById('nav-user-label').textContent = u.full_name || u.username;
     document.getElementById('tab-btn-users').style.display = isAdmin ? '' : 'none';
     const today = new Date().toISOString().split('T')[0];
-    document.getElementById('sales-date').value = today;
-    document.getElementById('dep-date').value = today;
+    document.getElementById('sales-date').value = isoToDMY(today);
+    document.getElementById('dep-date').value = isoToDMY(today);
     document.getElementById('login-page').style.display = 'none';
     document.getElementById('app-page').classList.remove('page-hidden');
     renderConfirmedSales();
@@ -724,7 +741,7 @@ function resetSalesOdoo() {
 }
 
 async function loadSalesFromOdoo() {
-  const date   = document.getElementById('sales-date').value;
+  const date   = getDateISO('sales-date');
   const branch = document.getElementById('sales-branch').value;
   if (!date) { alert('กรุณาเลือกวันที่'); return; }
   document.getElementById('sales-odoo-card').style.display = '';
@@ -741,7 +758,7 @@ async function loadSalesFromOdoo() {
 }
 
 async function renderOdooTable() {
-  const date   = document.getElementById('sales-date').value;
+  const date   = getDateISO('sales-date');
   const branch = document.getElementById('sales-branch').value;
   const tbody  = document.getElementById('sales-odoo-tbody');
 
@@ -843,7 +860,7 @@ function updateSalesSum() {
 }
 
 async function confirmSales() {
-  const date   = document.getElementById('sales-date').value;
+  const date   = getDateISO('sales-date');
   const branch = document.getElementById('sales-branch').value;
   const chks   = document.querySelectorAll('.sale-chk');
   const items  = [];
@@ -899,7 +916,7 @@ async function confirmSales() {
 }
 
 async function renderConfirmedSales() {
-  const date   = document.getElementById('sales-date')?.value || '';
+  const date   = getDateISO('sales-date');
   const branch = document.getElementById('sales-branch')?.value || '';
   const container = document.getElementById('sales-confirmed-container');
   try {
@@ -913,7 +930,7 @@ async function renderConfirmedSales() {
     }
     const total = items.reduce((s, x) => s + x.recorded_amount, 0);
     container.innerHTML = `
-      <div style="overflow-x:auto;">
+      <div>
         <table class="tbl" style="min-width:650px;">
           <thead>
             <tr><th>วันที่</th><th>สาขา</th><th>เลขที่อ้างอิง</th><th>ลูกค้า</th><th>ประเภท</th>
@@ -1042,7 +1059,7 @@ function getSelectedGroups() {
 
 async function confirmDeposit() {
   const chosen  = getSelectedGroups();
-  const depDate = document.getElementById('dep-date').value;
+  const depDate = getDateISO('dep-date');
   if (!chosen.length) { alert('กรุณาเลือกรายการที่จะนำฝากอย่างน้อย 1 กลุ่ม'); return; }
   if (!depDate) { alert('กรุณาระบุวันที่นำฝาก'); return; }
 
@@ -1080,7 +1097,7 @@ function buildGroupedRows(chosen) {
 
 function printPendingSelection() {
   const chosen  = getSelectedGroups();
-  const depDate = document.getElementById('dep-date').value;
+  const depDate = getDateISO('dep-date');
   if (!chosen.length) { alert('กรุณาเลือกรายการที่จะพิมพ์อย่างน้อย 1 กลุ่ม'); return; }
 
   const grouped  = buildGroupedRows(chosen);
@@ -1141,7 +1158,7 @@ let _allDeposits = [];
 
 function renderDoneDeposits(deps) {
   if (deps !== undefined) _allDeposits = deps;
-  const fDate  = (document.getElementById('hist-dep-date') ?.value || '').trim();
+  const fDate  = getDateISO('hist-dep-date');
   const fDocNo = (document.getElementById('hist-dep-docno')?.value || '').trim().toLowerCase();
   const fRef   = (document.getElementById('hist-dep-ref')  ?.value || '').trim().toLowerCase();
 
@@ -1310,7 +1327,7 @@ async function renderHistoryTab() {
 }
 
 function applyHistFilter() {
-  const fDate   = document.getElementById('hist-date')   ?.value || '';
+  const fDate   = getDateISO('hist-date');
   const fBranch = document.getElementById('hist-branch') ?.value || '';
   const fKw     = (document.getElementById('hist-keyword')?.value || '').trim().toLowerCase();
   const fStatus = document.getElementById('hist-status') ?.value || '';
@@ -1398,7 +1415,7 @@ async function showOrderLines(odooRef) {
   document.getElementById('lines-modal-title').textContent = '🛍 รายการสินค้า — ' + odooRef;
   document.getElementById('lines-modal-body').innerHTML = '<p class="text-muted">กำลังโหลด...</p>';
   document.getElementById('lines-modal').classList.remove('page-hidden');
-  const date  = document.getElementById('sales-date').value;
+  const date  = getDateISO('sales-date');
   const branch = document.getElementById('sales-branch').value;
   try {
     const lines = await apiFetch(`/api/cash-sales/odoo-lines?odoo_ref=${encodeURIComponent(odooRef)}&date=${date}&branch=${branch}`);
