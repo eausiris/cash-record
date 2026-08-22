@@ -6,7 +6,7 @@ from datetime import datetime
 from database import get_db
 import models
 from auth import get_current_user
-from odoo_client import get_cash_sales
+from odoo_client import get_cash_sales, get_order_lines
 
 router = APIRouter(prefix="/api/cash-sales", tags=["cash_sales"])
 
@@ -56,6 +56,15 @@ def to_out(s: models.CashSaleItem) -> SaleItemOut:
         status=s.status, confirmed_by=s.confirmed_by,
         deposit_id=s.deposit_id, deposit_date=s.deposit_date,
     )
+
+
+@router.get("/odoo-lines")
+def fetch_order_lines(
+    odoo_ref: str = Query(...),
+    _=Depends(get_current_user),
+):
+    """ดึงรายการสินค้าในบิล POS"""
+    return get_order_lines(odoo_ref)
 
 
 @router.get("/odoo")
