@@ -49,7 +49,7 @@ def get_cash_sales(date: str, branch: str) -> list:
             non_cash_ids = list(set(p["pos_order_id"][0] for p in non_cash))
             domain = [["config_id", "in", config_ids],
                       ["date_order", ">=", dt_start], ["date_order", "<", dt_end],
-                      ["state", "in", ["done", "paid"]], ["amount_total", ">", 0]]
+                      ["state", "in", ["done", "paid"]]]
             if non_cash_ids:
                 domain.append(["id", "not in", non_cash_ids])
             pos_orders = mdl.execute_kw(db, uid, pwd, "pos.order", "search_read",
@@ -89,4 +89,3 @@ def _fake_cash_sales(date: str, branch: str) -> list:
         items.append({"odoo_ref": ref, "customer_name": rng.choice(customers),
                       "sale_type": t, "odoo_amount": round(rng.uniform(500, 25000), 2)})
     return items
-
