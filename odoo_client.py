@@ -110,12 +110,12 @@ def get_order_lines(odoo_ref: str) -> list:
         order_id = orders[0]["id"]
         lines = mdl.execute_kw(db, uid, pwd, "pos.order.line", "search_read",
             [[["order_id", "=", order_id]]],
-            {"fields": ["product_id", "qty", "price_unit", "price_subtotal"], "limit": 100})
+            {"fields": ["product_id", "qty", "price_unit", "price_subtotal_incl"], "limit": 100})
         return [{
             "product_name": l["product_id"][1] if l.get("product_id") else "-",
             "qty": l.get("qty", 0),
             "price_unit": l.get("price_unit", 0),
-            "price_subtotal": l.get("price_subtotal", 0),
+            "price_subtotal": l.get("price_subtotal_incl", 0),
         } for l in lines]
     except Exception as e:
         print(f"get_order_lines error: {e}")
