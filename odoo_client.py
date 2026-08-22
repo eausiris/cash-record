@@ -1,5 +1,5 @@
 ﻿"""
-Odoo XML-RPC client - bakesome.co.th
+Odoo XML-RPC client — bakesome.co.th
 """
 import xmlrpc.client
 from datetime import datetime, timedelta
@@ -27,65 +27,80 @@ def _branch_prefix(branch: str) -> str:
 
 
 def get_cash_sales(date: str, branch: str) -> list:
-    if not settings.ODOO_URL:
-        return _fake_cash_sales(date, branch)
-    try:
-        uid, mdl = _get_uid_and_mdl()
-        db  = settings.ODOO_DB
-        pwd = settings.ODOO_PASSWORD
-        dt_start, dt_end = _date_range_utc(date)
-        prefix = _branch_prefix(branch)
-        items = []
-        configs = mdl.execute_kw(db, uid, pwd, "pos.config", "search_read",
-            [[["name", "ilike", prefix]]], {"fields": ["id"]})
-        config_ids = [c["id"] for c in configs]
-        if config_ids:
-            non_cash = mdl.execute_kw(db, uid, pwd, "pos.payment", "search_read",
-                [[["payment_method_id.is_cash_count", "=", False],
-                  ["pos_order_id.config_id", "in", config_ids],
-                  ["pos_order_id.date_order", ">=", dt_start],
-                  ["pos_order_id.date_order", "<",  dt_end]]],
-                {"fields": ["pos_order_id"], "limit": 1000})
-            non_cash_ids = list(set(p["pos_order_id"][0] for p in non_cash))
-            domain = [["config_id", "in", config_ids],
-                      ["date_order", ">=", dt_start], ["date_order", "<", dt_end],
-                      ["state", "in", ["done", "paid"]]]
-            if non_cash_ids:
-                domain.append(["id", "not in", non_cash_ids])
-            pos_orders = mdl.execute_kw(db, uid, pwd, "pos.order", "search_read",
-                [domain], {"fields": ["name", "partner_id", "amount_total"],
-                           "limit": 500, "order": "date_order asc"})
-            for o in pos_orders:
-                items.append({"odoo_ref": o["name"],
-                    "customer_name": o["partner_id"][1] if o.get("partner_id") else "ลูกค้าทั่วไป",
-                    "sale_type": "pos", "odoo_amount": o.get("amount_total", 0)})
-        payments = mdl.execute_kw(db, uid, pwd, "account.payment", "search_read",
-            [[["date", "=", date], ["payment_type", "=", "inbound"],
-              ["journal_id.type", "=", "cash"], ["state", "=", "posted"]]],
-            {"fields": ["name", "partner_id", "amount"], "limit": 200})
-        for p in payments:
-            items.append({"odoo_ref": p["name"],
-                "customer_name": p["partner_id"][1] if p.get("partner_id") else "-",
-                "sale_type": "invoice", "odoo_amount": p.get("amount", 0)})
-        return items
-    except Exception as e:
-        print(f"Odoo error: {e}")
-        return _fake_cash_sales(date, branch)
-
-
-def get_odoo_cash(date: str, branch: str) -> dict:
-    return {"pos": 0.0, "inv": 0.0, "exp": 0.0, "net": 0.0}
-
-
-def _fake_cash_sales(date: str, branch: str) -> list:
-    import random
-    seed = int(date.replace("-", "")) + (1 if branch == "rama3" else 2)
-    rng = random.Random(seed)
-    customers = ["บ.สยามเทค จก.", "คุณสมชาย", "ลูกค้าทั่วไป"]
+    uid, mdl = _get_uid_and_mdl()
+    db  = settings.ODOO_DB
+    pwd = settings.ODOO_PASSWORD
+    dt_start, dt_end = _date_range_utc(date)
+    prefix = _branch_prefix(branch)
     items = []
-    for i in range(rng.randint(4, 9)):
-        t = "pos" if rng.random() > 0.3 else "invoice"
-        ref = f"POS/{date}/{1000+i}" if t == "pos" else f"INV/{date}/{500+i}"
-        items.append({"odoo_ref": ref, "customer_name": rng.choice(customers),
-                      "sale_type": t, "odoo_amount": round(rng.uniform(500, 25000), 2)})
+
+    configs = mdl.execute_kw(db, uid, pwd, "pos.config", "search_read",
+        [[["name", "ilike", prefix]]], {"fields": ["id"]})
+    config_ids = [c["id"] for c in configs]
+
+    if config_ids:
+        non_cash_payments = mdl.execute_kw(db, uid, pwd, "pos.payment", "search_read",
+            [[["is_cash_count", "=", False],
+              ["pos_order_id.config_id", "in", config_ids],
+              ["pos_order_id.date_order", ">=", dt_start],
+              ["pos_order_id.date_order", "<", dt_end]]],
+            {"fields": ["pos_order_id"], "limit": 1000})
+        non_cash_order_ids = list({p["pos_order_id"][0] for p in non_cash_payments if p.get("pos_order_id")})
+
+        domain = [
+            ["config_id", "in", config_ids],
+            ["date_order", ">=", dt_start],
+            ["date_order", "<",  dt_end],
+            ["state", "in", ["done", "paid", "invoiced"]],
+        ]
+        if non_cash_order_ids:
+            domain.append(["id", "not in", non_cash_order_ids])
+
+        pos_orders = mdl.execute_kw(db, uid, pwd, "pos.order", "search_read",
+            [domain],
+            {"fields": ["name", "partner_id", "amount_total"], "limit": 500,
+             "order": "date_order asc"})
+        for o in pos_orders:
+            items.append({
+                "odoo_ref":      o["name"],
+                "customer_name": o["partner_id"][1] if o.get("partner_id") else "ลูกค้าทั่วไป",
+                "sale_type":     "pos",
+                "odoo_amount":   o.get("amount_total", 0),
+            })
+
+    payments = mdl.execute_kw(db, uid, pwd, "account.payment", "search_read",
+        [[["date", "=", date],
+          ["payment_type", "=", "inbound"],
+          ["journal_id.type", "=", "cash"],
+          ["state", "=", "posted"]]],
+        {"fields": ["name", "partner_id", "amount"], "limit": 200})
+    for p in payments:
+        items.append({
+            "odoo_ref":      p["name"],
+            "customer_name": p["partner_id"][1] if p.get("partner_id") else "-",
+            "sale_type":     "invoice",
+            "odoo_amount":   p.get("amount", 0),
+        })
+
     return items
+
+
+def get_order_lines(odoo_ref: str) -> list:
+    uid, mdl = _get_uid_and_mdl()
+    db  = settings.ODOO_DB
+    pwd = settings.ODOO_PASSWORD
+    orders = mdl.execute_kw(db, uid, pwd, "pos.order", "search_read",
+        [[["name", "=", odoo_ref]]],
+        {"fields": ["id"], "limit": 1})
+    if not orders:
+        return []
+    order_id = orders[0]["id"]
+    lines = mdl.execute_kw(db, uid, pwd, "pos.order.line", "search_read",
+        [[["order_id", "=", order_id]]],
+        {"fields": ["product_id", "qty", "price_unit", "price_subtotal"], "limit": 100})
+    return [{
+        "product_name": l["product_id"][1] if l.get("product_id") else "-",
+        "qty": l.get("qty", 0),
+        "price_unit": l.get("price_unit", 0),
+        "price_subtotal": l.get("price_subtotal", 0),
+    } for l in lines]
