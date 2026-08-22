@@ -290,20 +290,17 @@
       <div id="sales-odoo-card" class="card" style="display:none;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
           <div class="card-title" style="margin-bottom:0;">รายการขายเงินสด</div>
-          <div style="display:flex;align-items:center;gap:10px;">
-            <label style="font-size:13px;display:flex;align-items:center;gap:6px;cursor:pointer;">
-              <input type="checkbox" id="sales-check-all" onchange="toggleAllSales(this.checked)"
-                style="width:15px;height:15px;accent-color:#f8af3c;" />
-              เลือกทั้งหมด
-            </label>
-            <button class="btn btn-success btn-sm" onclick="confirmSales()">✅ ยืนยันรายการที่เลือก</button>
-          </div>
+          <button class="btn btn-success btn-sm" onclick="confirmSales()">✅ ยืนยันรายการที่เลือก</button>
         </div>
         <div>
           <table class="tbl">
             <thead>
               <tr>
-                <th style="width:36px;"></th>
+                <th style="width:36px;text-align:center;">
+                  <input type="checkbox" id="sales-check-all" onchange="toggleAllSales(this.checked)"
+                    title="เลือกทั้งหมด"
+                    style="width:16px;height:16px;accent-color:#f8af3c;cursor:pointer;" />
+                </th>
                 <th>เลขที่อ้างอิง</th>
                 <th style="width:70px;">เวลา</th>
                 <th>ลูกค้า</th>
@@ -533,7 +530,7 @@
 
 <!-- ========== ORDER LINES MODAL ========== -->
 <div id="lines-modal" class="modal-overlay page-hidden">
-  <div class="modal-box" style="position:relative;padding-top:40px;max-width:560px;">
+  <div class="modal-box" style="position:relative;padding-top:40px;width:860px;max-width:95vw;">
     <div style="position:absolute;top:10px;right:12px;">
       <button class="btn btn-secondary btn-sm" onclick="closeModal('lines-modal')">ปิด</button>
     </div>
@@ -792,8 +789,10 @@ async function renderOdooTable() {
             style="width:17px;height:17px;accent-color:#f8af3c;" onchange="updateSalesSum()" />
         </td>
         <td>
-          <div style="font-size:13px;color:#555;">${item.odoo_ref}</div>
-          ${item.sale_type==='pos'?`<button class="btn btn-sm" style="margin-top:4px;padding:3px 8px;font-size:12px;background:#fff8e7;color:#c47c00;border:1px solid #f8af3c;" onclick="showOrderLines('${item.odoo_ref}')">🛍 ดูสินค้า</button>`:''}
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:nowrap;">
+            <span style="font-size:13px;color:#555;">${item.odoo_ref}</span>
+            ${item.sale_type==='pos'?`<button class="btn btn-sm" style="padding:2px 8px;font-size:12px;background:#fff8e7;color:#c47c00;border:1px solid #f8af3c;white-space:nowrap;" onclick="showOrderLines('${item.odoo_ref}')">🛍 ดูสินค้า</button>`:''}
+          </div>
         </td>
         <td style="font-size:14px;color:#555;text-align:center;">${item.bill_time||'-'}</td>
         <td style="font-size:14px;">${item.customer_name}</td>
