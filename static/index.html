@@ -1,0 +1,1370 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cash Record — บันทึกยอดเงินสดรายวัน</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f5f5f0; color: #1a1a1a; font-size: 15px; }
+
+  /* NAV */
+  .nav { background: #fff; border-bottom: 1px solid #e5e5e0; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; height: 56px; position: sticky; top: 0; z-index: 100; }
+  .nav-logo { font-size: 16px; font-weight: 600; color: #1a5276; display: flex; align-items: center; gap: 8px; }
+  .nav-logo span { font-weight: 400; color: #666; font-size: 13px; }
+  .nav-right { display: flex; align-items: center; gap: 16px; }
+  .nav-branch { font-size: 13px; background: #eaf2fb; color: #1a5276; padding: 4px 12px; border-radius: 20px; font-weight: 500; }
+  .nav-user { font-size: 13px; color: #555; }
+  .nav-logout { font-size: 13px; color: #888; cursor: pointer; border: none; background: none; padding: 4px 8px; border-radius: 4px; }
+  .nav-logout:hover { background: #f5f5f0; }
+
+  /* LAYOUT */
+  .page { max-width: 900px; margin: 0 auto; padding: 28px 20px; }
+  .page-hidden { display: none !important; }
+
+  /* LOGIN */
+  .login-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #f5f5f0; }
+  .login-box { background: #fff; border-radius: 12px; border: 1px solid #e5e5e0; padding: 40px; width: 380px; }
+  .login-logo { text-align: center; margin-bottom: 28px; }
+  .login-logo h1 { font-size: 20px; font-weight: 600; color: #1a5276; margin-bottom: 4px; }
+  .login-logo p { font-size: 13px; color: #888; }
+  .form-field { margin-bottom: 16px; }
+  .form-field label { display: block; font-size: 13px; color: #555; margin-bottom: 6px; font-weight: 500; }
+  .form-field input, .form-field select, .form-field textarea {
+    width: 100%; border: 1px solid #d8d8d0; border-radius: 6px; padding: 9px 12px;
+    font-size: 14px; color: #1a1a1a; background: #fff; font-family: inherit;
+    transition: border-color .15s;
+  }
+  .form-field input:focus, .form-field select:focus, .form-field textarea:focus {
+    outline: none; border-color: #1a5276; box-shadow: 0 0 0 3px rgba(26,82,118,.08);
+  }
+  .form-field textarea { resize: vertical; min-height: 72px; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 9px 18px; border-radius: 6px; font-size: 14px; font-weight: 500;
+    cursor: pointer; border: none; transition: background .15s, opacity .15s; }
+  .btn-primary { background: #1a5276; color: #fff; }
+  .btn-primary:hover { background: #154360; }
+  .btn-success { background: #1e8449; color: #fff; }
+  .btn-success:hover { background: #196f3d; }
+  .btn-secondary { background: #fff; color: #333; border: 1px solid #d8d8d0; }
+  .btn-secondary:hover { background: #f8f8f5; }
+  .btn-danger { background: #c0392b; color: #fff; }
+  .btn-danger:hover { background: #a93226; }
+  .btn-full { width: 100%; }
+  .btn-sm { padding: 6px 12px; font-size: 13px; }
+
+  /* CARDS */
+  .card { background: #fff; border-radius: 10px; border: 1px solid #e5e5e0; padding: 20px 24px; margin-bottom: 18px; }
+  .card-title { font-size: 15px; font-weight: 600; color: #1a1a1a; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .card-title .icon { font-size: 18px; }
+
+  /* TABS */
+  .tabs { display: flex; gap: 2px; background: #f0f0ea; border-radius: 8px; padding: 3px; margin-bottom: 22px; }
+  .tab { flex: 1; text-align: center; padding: 8px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; color: #666; border: none; background: none; }
+  .tab.active { background: #fff; color: #1a5276; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+
+  /* GRID */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+  .grid-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 12px; }
+
+  /* STAT CARDS */
+  .stat { background: #f8f8f5; border-radius: 8px; padding: 14px 16px; }
+  .stat-label { font-size: 12px; color: #888; margin-bottom: 5px; }
+  .stat-value { font-size: 22px; font-weight: 600; color: #1a1a1a; }
+  .stat-sub { font-size: 12px; color: #aaa; margin-top: 3px; }
+  .stat.accent { background: #eaf2fb; }
+  .stat.accent .stat-value { color: #1a5276; }
+  .stat.success { background: #eafaf1; }
+  .stat.success .stat-value { color: #1e8449; }
+  .stat.warning { background: #fef9e7; }
+  .stat.warning .stat-value { color: #b7950b; }
+  .stat.danger { background: #fdedec; }
+  .stat.danger .stat-value { color: #c0392b; }
+
+  /* BRANCH SELECTOR */
+  .branch-selector { display: flex; gap: 12px; margin-bottom: 4px; }
+  .branch-btn { flex: 1; padding: 16px; border-radius: 8px; border: 2px solid #e5e5e0; cursor: pointer;
+    background: #fff; text-align: center; transition: all .15s; }
+  .branch-btn:hover { border-color: #1a5276; background: #eaf2fb; }
+  .branch-btn.selected { border-color: #1a5276; background: #eaf2fb; }
+  .branch-btn .b-name { font-size: 15px; font-weight: 600; color: #1a5276; }
+  .branch-btn .b-bank { font-size: 12px; color: #888; margin-top: 4px; }
+  .branch-btn .b-acc { font-size: 13px; color: #555; margin-top: 2px; }
+
+  /* STATUS BADGES */
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; }
+  .badge-success { background: #eafaf1; color: #1e8449; }
+  .badge-warning { background: #fef9e7; color: #b7950b; }
+  .badge-danger { background: #fdedec; color: #c0392b; }
+  .badge-info { background: #eaf2fb; color: #1a5276; }
+  .badge-gray { background: #f0f0ea; color: #555; }
+
+  /* TABLE */
+  .tbl { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  .tbl th { text-align: left; padding: 9px 12px; font-size: 12px; color: #888; font-weight: 500;
+    border-bottom: 1px solid #e5e5e0; background: #f8f8f5; }
+  .tbl td { padding: 10px 12px; border-bottom: 1px solid #f0f0ea; color: #333; vertical-align: middle; }
+  .tbl tr:last-child td { border-bottom: none; }
+  .tbl tr:hover td { background: #fafafa; }
+  .tbl .num { text-align: right; font-variant-numeric: tabular-nums; }
+
+  /* DIFF */
+  .diff-pos { color: #1e8449; font-weight: 500; }
+  .diff-neg { color: #c0392b; font-weight: 500; }
+  .diff-zero { color: #888; }
+
+  /* ALERT */
+  .alert { padding: 12px 16px; border-radius: 6px; font-size: 13.5px; margin-bottom: 16px; }
+  .alert-warning { background: #fef9e7; border: 1px solid #f9e79f; color: #7d6608; }
+  .alert-success { background: #eafaf1; border: 1px solid #a9dfbf; color: #1e6b3a; }
+  .alert-info { background: #eaf2fb; border: 1px solid #a9cce3; color: #1a4e6b; }
+
+  /* ODOO PULL */
+  .odoo-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f0f0ea; }
+  .odoo-row:last-child { border-bottom: none; }
+  .odoo-row .odoo-label { font-size: 13px; color: #555; }
+  .odoo-row .odoo-val { font-size: 14px; font-weight: 500; font-variant-numeric: tabular-nums; }
+
+  /* DEPOSIT GROUP */
+  .deposit-item { padding: 14px 16px; border: 1px solid #e5e5e0; border-radius: 8px; margin-bottom: 10px; cursor: pointer; transition: border-color .15s; }
+  .deposit-item:hover { border-color: #1a5276; }
+  .deposit-item .dep-header { display: flex; justify-content: space-between; align-items: center; }
+  .deposit-item .dep-title { font-weight: 500; font-size: 14px; }
+  .deposit-item .dep-amount { font-size: 15px; font-weight: 600; color: #1a5276; }
+  .deposit-item .dep-sub { font-size: 12px; color: #888; margin-top: 4px; }
+  .deposit-item .dep-dates { font-size: 12px; color: #555; margin-top: 6px; padding-top: 6px; border-top: 1px solid #f0f0ea; }
+
+  /* PRINT STYLES */
+  @media print {
+    body { background: #fff; }
+    .nav, .tabs, .no-print { display: none !important; }
+    .page { max-width: 100%; padding: 0; }
+    .card { border: none; padding: 0; margin-bottom: 12px; box-shadow: none; }
+    .print-section { display: block !important; }
+    .tbl th { background: #eee; }
+    .modal-overlay { position: static !important; background: none !important; display: block !important; }
+    .modal-box { width: 100% !important; max-height: none !important; padding: 0 !important; box-shadow: none !important; border-radius: 0 !important; }
+    #app-page, #login-page { display: none !important; }
+    @page { margin: 15mm; }
+  }
+  .print-section { display: none; }
+
+  /* PRINT PREVIEW */
+  .print-doc { background: #fff; padding: 0 4px; }
+  .print-doc h2 { font-size: 17px; font-weight: 600; text-align: center; margin-bottom: 4px; }
+  .print-doc .print-sub { text-align: center; font-size: 13px; color: #666; margin-bottom: 20px; }
+  .print-doc .print-info { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 16px; }
+  .sign-row { display: flex; gap: 40px; margin-top: 40px; }
+  .sign-box { flex: 1; }
+  .sign-box .sign-label { font-size: 13px; color: #555; margin-bottom: 32px; }
+  .sign-box .sign-line { border-top: 1px solid #333; padding-top: 6px; font-size: 12px; color: #888; }
+
+  /* LOADING SHIMMER */
+  .shimmer { background: linear-gradient(90deg, #f0f0ea 25%, #e8e8e0 50%, #f0f0ea 75%);
+    background-size: 200%; animation: shimmer 1.4s infinite; border-radius: 4px; height: 16px; }
+  @keyframes shimmer { 0% { background-position: 200% } 100% { background-position: -200% } }
+  .shimmer-row { padding: 10px 0; }
+
+  /* SECTION HEADER */
+  .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+  .section-header h2 { font-size: 17px; font-weight: 600; color: #1a1a1a; }
+
+  /* AMOUNT INPUT */
+  .amount-input-wrap { position: relative; }
+  .amount-input-wrap input { padding-left: 40px; font-size: 18px; font-weight: 500; height: 50px; }
+  .amount-input-wrap .currency { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #888; font-size: 14px; }
+
+  /* DIFF DISPLAY */
+  .diff-display { border-radius: 8px; padding: 14px 16px; margin-top: 12px; }
+  .diff-display.positive { background: #eafaf1; border: 1px solid #a9dfbf; }
+  .diff-display.negative { background: #fdedec; border: 1px solid #f5b7b1; }
+  .diff-display.zero { background: #f0f0ea; border: 1px solid #d8d8d0; }
+  .diff-display .diff-label { font-size: 12px; color: #888; margin-bottom: 4px; }
+  .diff-display .diff-amount { font-size: 20px; font-weight: 600; }
+
+  /* DEPOSIT CHECKBOX LIST */
+  .check-list { }
+  .check-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 6px; cursor: pointer; border: 1px solid #e5e5e0; margin-bottom: 8px; transition: background .1s; }
+  .check-item:hover { background: #f8f8f5; }
+  .check-item.checked { background: #eaf2fb; border-color: #1a5276; }
+  .check-item input[type=checkbox] { width: 16px; height: 16px; accent-color: #1a5276; cursor: pointer; }
+  .check-item .ci-info { flex: 1; }
+  .check-item .ci-date { font-size: 13px; font-weight: 500; }
+  .check-item .ci-branch { font-size: 12px; color: #888; }
+  .check-item .ci-amount { font-weight: 600; color: #1a5276; font-variant-numeric: tabular-nums; }
+
+  /* MISC */
+  hr { border: none; border-top: 1px solid #e8e8e0; margin: 16px 0; }
+  .text-muted { color: #888; font-size: 13px; }
+  .text-right { text-align: right; }
+  .mt-4 { margin-top: 4px; }
+  .mt-8 { margin-top: 8px; }
+  .mt-12 { margin-top: 12px; }
+  .mt-16 { margin-top: 16px; }
+  .flex-end { display: flex; justify-content: flex-end; gap: 8px; }
+  .flex-center { display: flex; align-items: center; gap: 8px; }
+  .w-full { width: 100%; }
+
+  /* MODAL */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 200; display: flex; align-items: center; justify-content: center; }
+  .modal-box { background: #fff; border-radius: 12px; padding: 28px; width: 640px; max-height: 85vh; overflow-y: auto; }
+  .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .modal-header h3 { font-size: 16px; font-weight: 600; }
+  .modal-close { background: none; border: none; font-size: 22px; cursor: pointer; color: #888; padding: 0 4px; }
+  .modal-close:hover { color: #333; }
+  /* SALES TABLE INPUTS */
+  .sale-amt { width: 120px; border: 1px solid #d8d8d0; border-radius: 5px; padding: 5px 8px; font-size: 13px; text-align: right; font-family: inherit; }
+  .sale-amt.adjusted { border-color: #e67e22; background: #fef9e7; }
+  .sale-rmk { width: 200px; border: 1px solid #d8d8d0; border-radius: 5px; padding: 5px 8px; font-size: 12px; font-family: inherit; }
+  .sale-rmk.required { border-color: #e74c3c; }
+</style>
+</head>
+<body>
+
+<!-- ========== LOGIN PAGE ========== -->
+<div id="login-page">
+  <div class="login-wrap">
+    <div class="login-box">
+      <div class="login-logo">
+        <h1>💰 Cash Record</h1>
+        <p>ระบบบันทึกยอดเงินสดรายวัน</p>
+      </div>
+      <div class="form-field">
+        <label>ชื่อผู้ใช้</label>
+        <input type="text" id="login-user" placeholder="username" value="admin" />
+      </div>
+      <div class="form-field">
+        <label>รหัสผ่าน</label>
+        <input type="password" id="login-pass" placeholder="••••••••" value="1234" />
+      </div>
+      <div class="mt-16">
+        <button class="btn btn-primary btn-full" onclick="doLogin()">เข้าสู่ระบบ</button>
+      </div>
+      <p style="text-align:center;font-size:12px;color:#aaa;margin-top:16px;">v2.0 — Demo Prototype</p>
+    </div>
+  </div>
+</div>
+
+<!-- ========== MAIN APP ========== -->
+<div id="app-page" class="page-hidden">
+
+  <div class="nav">
+    <div class="nav-logo">💰 Cash Record <span>ระบบบันทึกเงินสดรายวัน</span></div>
+    <div class="nav-right">
+      <span class="nav-user" id="nav-user-label">admin</span>
+      <button class="nav-logout" onclick="doLogout()">ออกจากระบบ</button>
+    </div>
+  </div>
+
+  <div class="page">
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('sales')">🧾 รายการขายเงินสด</button>
+      <button class="tab" onclick="switchTab('deposit')">🏦 จัดการการนำฝาก</button>
+      <button class="tab" onclick="switchTab('history')">📋 ประวัติรายการ</button>
+      <button class="tab" id="tab-btn-users" style="display:none;" onclick="switchTab('users')">⚙️ จัดการผู้ใช้</button>
+    </div>
+
+    <!-- ===== TAB: SALES ===== -->
+    <div id="tab-sales">
+
+      <!-- Filter bar -->
+      <div class="card">
+        <div style="display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;">
+          <div class="form-field" style="margin-bottom:0;">
+            <label>วันที่</label>
+            <input type="date" id="sales-date" style="width:160px;" />
+          </div>
+          <div class="form-field" style="margin-bottom:0;">
+            <label>สาขา</label>
+            <select id="sales-branch" style="width:140px;" onchange="resetSalesOdoo()">
+              <option value="rama3">Rama 3</option>
+              <option value="kaset">Kaset</option>
+            </select>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="loadSalesFromOdoo()">🔄 ดึงข้อมูลจาก Odoo</button>
+        </div>
+      </div>
+
+      <!-- Odoo raw list -->
+      <div id="sales-odoo-card" class="card" style="display:none;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
+          <div class="card-title" style="margin-bottom:0;">รายการจาก Odoo</div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <label style="font-size:13px;display:flex;align-items:center;gap:6px;cursor:pointer;">
+              <input type="checkbox" id="sales-check-all" onchange="toggleAllSales(this.checked)"
+                style="width:15px;height:15px;accent-color:#1a5276;" />
+              เลือกทั้งหมด
+            </label>
+            <button class="btn btn-success btn-sm" onclick="confirmSales()">✅ ยืนยันรายการที่เลือก</button>
+          </div>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="tbl" style="min-width:700px;">
+            <thead>
+              <tr>
+                <th style="width:36px;"></th>
+                <th>เลขที่อ้างอิง</th>
+                <th>ลูกค้า</th>
+                <th>ประเภท</th>
+                <th class="num">ยอด Odoo</th>
+                <th class="num" style="width:140px;">ยอดที่บันทึก</th>
+                <th style="width:220px;">หมายเหตุ</th>
+              </tr>
+            </thead>
+            <tbody id="sales-odoo-tbody">
+              <tr><td colspan="7" style="text-align:center;color:#aaa;padding:20px;">กำลังโหลด...</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <!-- Sum footer -->
+        <div id="sales-sum-row" style="display:none;border-top:2px solid #1a5276;margin-top:8px;padding-top:12px;">
+          <div style="display:flex;justify-content:flex-end;align-items:center;gap:16px;">
+            <span id="sales-sel-count" style="font-size:13px;color:#888;"></span>
+            <div style="text-align:right;">
+              <div style="font-size:12px;color:#888;">ยอดรวมที่เลือก</div>
+              <div id="sales-sel-total" style="font-size:22px;font-weight:600;color:#1a5276;">฿0.00</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Confirmed items for current filter -->
+      <div class="card">
+        <div class="card-title">รายการที่บันทึกแล้ว</div>
+        <div id="sales-confirmed-container">
+          <p class="text-muted" style="padding:8px 0;">ดึงข้อมูลจาก Odoo และยืนยันรายการเพื่อบันทึก</p>
+        </div>
+      </div>
+
+    </div><!-- end tab-sales -->
+
+    <!-- ===== TAB: DEPOSIT ===== -->
+    <div id="tab-deposit" class="page-hidden">
+      <div class="section-header"><h2>จัดการการนำฝากธนาคาร</h2></div>
+
+      <div class="grid-2" style="margin-bottom:18px;">
+        <div class="stat accent">
+          <div class="stat-label">รอนำฝาก (ทั้งหมด)</div>
+          <div class="stat-value" id="dep-pending-total">฿0</div>
+          <div class="stat-sub" id="dep-pending-days">0 กลุ่ม</div>
+        </div>
+        <div class="stat success">
+          <div class="stat-label">นำฝากแล้ว (เดือนนี้)</div>
+          <div class="stat-value" id="dep-done-total">฿0</div>
+          <div class="stat-sub" id="dep-done-count">0 รายการ</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:14px;gap:16px;flex-wrap:wrap;">
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <div class="card-title" style="margin-bottom:0;">รายการที่รอนำฝาก</div>
+            <div style="display:flex;gap:4px;background:#f0f0ea;border-radius:6px;padding:3px;">
+              <button class="tab active" id="dep-filter-all"   onclick="setDepFilter('all')"   style="flex:none;padding:5px 14px;font-size:12px;">ทั้งหมด</button>
+              <button class="tab"        id="dep-filter-rama3" onclick="setDepFilter('rama3')" style="flex:none;padding:5px 14px;font-size:12px;">Rama 3</button>
+              <button class="tab"        id="dep-filter-kaset" onclick="setDepFilter('kaset')" style="flex:none;padding:5px 14px;font-size:12px;">Kaset</button>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <div class="form-field" style="margin-bottom:0;display:flex;align-items:center;gap:8px;">
+              <label style="white-space:nowrap;font-size:13px;color:#555;font-weight:500;">วันที่นำฝาก</label>
+              <input type="date" id="dep-date" style="width:160px;" />
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="printPendingSelection()">🖨️ พิมพ์รายการที่เลือก</button>
+            <button class="btn btn-success btn-sm" onclick="confirmDeposit()">✅ บันทึกการนำฝาก</button>
+          </div>
+        </div>
+        <div id="pending-deposit-list">
+          <p class="text-muted" style="padding:8px 0;">ยังไม่มีรายการที่รอนำฝาก</p>
+        </div>
+        <div id="pending-sum-row" style="display:none;border-top:2px solid #1a5276;margin-top:4px;padding-top:12px;">
+          <div style="display:flex;justify-content:flex-end;align-items:center;gap:16px;">
+            <span id="pending-sel-count" style="font-size:13px;color:#888;"></span>
+            <div style="text-align:right;">
+              <div style="font-size:12px;color:#888;">ยอดรวมที่เลือก</div>
+              <div id="pending-sel-total" style="font-size:22px;font-weight:600;color:#1a5276;">฿0.00</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
+          <div class="card-title" style="margin-bottom:0;">ประวัติการนำฝาก</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
+            <div class="form-field" style="margin-bottom:0;">
+              <label style="font-size:12px;">วันที่นำฝาก</label>
+              <input type="date" id="hist-dep-date" style="width:148px;font-size:13px;" oninput="renderDoneDeposits()" />
+            </div>
+            <div class="form-field" style="margin-bottom:0;">
+              <label style="font-size:12px;">เลขที่เอกสาร</label>
+              <input type="text" id="hist-dep-docno" placeholder="DEP-..." style="width:148px;font-size:13px;" oninput="renderDoneDeposits()" />
+            </div>
+            <div class="form-field" style="margin-bottom:0;">
+              <label style="font-size:12px;">เลขที่บิล</label>
+              <input type="text" id="hist-dep-ref" placeholder="POS/ หรือ INV/..." style="width:160px;font-size:13px;" oninput="renderDoneDeposits()" />
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="clearDepHistFilter()">ล้าง</button>
+          </div>
+        </div>
+        <div id="done-deposit-list">
+          <p class="text-muted" style="padding:8px 0;">ยังไม่มีประวัติการนำฝาก</p>
+        </div>
+      </div>
+    </div><!-- end tab-deposit -->
+
+    <!-- ===== TAB: HISTORY ===== -->
+    <div id="tab-history" class="page-hidden">
+      <div class="section-header"><h2>ประวัติรายการขายเงินสด</h2></div>
+
+      <div class="grid-4" style="margin-bottom:18px;">
+        <div class="stat">
+          <div class="stat-label">รายการทั้งหมด</div>
+          <div class="stat-value" id="hist-count">0</div>
+        </div>
+        <div class="stat success">
+          <div class="stat-label">ยอดตรง</div>
+          <div class="stat-value" id="hist-match">0</div>
+        </div>
+        <div class="stat warning">
+          <div class="stat-label">มีการปรับยอด</div>
+          <div class="stat-value" id="hist-adjusted">0</div>
+        </div>
+        <div class="stat accent">
+          <div class="stat-label">นำฝากแล้ว</div>
+          <div class="stat-value" id="hist-deposited">0</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="display:flex;align-items:flex-end;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
+          <div class="form-field" style="margin-bottom:0;">
+            <label style="font-size:12px;">วันที่</label>
+            <input type="date" id="hist-date" style="width:148px;font-size:13px;" oninput="renderHistoryTab()" />
+          </div>
+          <div class="form-field" style="margin-bottom:0;">
+            <label style="font-size:12px;">สาขา</label>
+            <select id="hist-branch" style="width:120px;font-size:13px;" onchange="renderHistoryTab()">
+              <option value="">ทั้งหมด</option>
+              <option value="rama3">Rama 3</option>
+              <option value="kaset">Kaset</option>
+            </select>
+          </div>
+          <div class="form-field" style="margin-bottom:0;">
+            <label style="font-size:12px;">เลขที่อ้างอิง / ลูกค้า</label>
+            <input type="text" id="hist-keyword" placeholder="ค้นหา..." style="width:180px;font-size:13px;" oninput="renderHistoryTab()" />
+          </div>
+          <div class="form-field" style="margin-bottom:0;">
+            <label style="font-size:12px;">สถานะ</label>
+            <select id="hist-status" style="width:130px;font-size:13px;" onchange="renderHistoryTab()">
+              <option value="">ทั้งหมด</option>
+              <option value="pending">รอนำฝาก</option>
+              <option value="deposited">นำฝากแล้ว</option>
+            </select>
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="clearHistFilter()">ล้าง</button>
+        </div>
+        <table class="tbl">
+          <thead>
+            <tr>
+              <th>วันที่</th>
+              <th>สาขา</th>
+              <th>เลขที่อ้างอิง</th>
+              <th>ลูกค้า</th>
+              <th>ประเภท</th>
+              <th class="num">ยอด Odoo</th>
+              <th class="num">ยอดที่บันทึก</th>
+              <th>สถานะ</th>
+            </tr>
+          </thead>
+          <tbody id="history-tbody">
+            <tr><td colspan="8" style="text-align:center;color:#aaa;padding:24px;">ยังไม่มีรายการ</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div><!-- end tab-history -->
+
+    <!-- ===== TAB: USERS (admin only) ===== -->
+    <div id="tab-users" class="page-hidden">
+      <div class="card" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+        <div class="card-title" style="margin-bottom:0;">⚙️ จัดการผู้ใช้งาน</div>
+        <button class="btn btn-primary btn-sm" onclick="openUserModal()">+ เพิ่มผู้ใช้ใหม่</button>
+      </div>
+      <div class="card">
+        <div id="users-table-container">
+          <p class="text-muted">กำลังโหลด...</p>
+        </div>
+      </div>
+      <div class="card" style="background:#fffbea;border:1px solid #f0c040;">
+        <div class="card-title" style="margin-bottom:8px;">🔑 เปลี่ยนรหัสผ่านของฉัน</div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+          <div class="form-field" style="margin-bottom:0;">
+            <label>รหัสผ่านเดิม</label>
+            <input type="password" id="cp-old" style="width:180px;" />
+          </div>
+          <div class="form-field" style="margin-bottom:0;">
+            <label>รหัสผ่านใหม่</label>
+            <input type="password" id="cp-new" style="width:180px;" />
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="changeMyPassword()">เปลี่ยนรหัสผ่าน</button>
+        </div>
+      </div>
+    </div><!-- end tab-users -->
+
+  </div><!-- end .page -->
+</div><!-- end app-page -->
+
+<!-- ========== USER MODAL ========== -->
+<div id="user-modal" class="modal-overlay page-hidden">
+  <div class="modal-box" style="position:relative;padding-top:40px;max-width:440px;">
+    <div style="position:absolute;top:10px;right:12px;display:flex;gap:8px;">
+      <button class="btn btn-secondary btn-sm" onclick="closeModal('user-modal')">ยกเลิก</button>
+      <button class="btn btn-primary btn-sm" onclick="saveUser()">บันทึก</button>
+    </div>
+    <div class="card-title" style="margin-bottom:16px;" id="user-modal-title">เพิ่มผู้ใช้ใหม่</div>
+    <input type="hidden" id="um-id" value="" />
+    <div class="form-field">
+      <label>ชื่อผู้ใช้ (username)</label>
+      <input type="text" id="um-username" style="width:100%;" />
+    </div>
+    <div class="form-field">
+      <label>ชื่อแสดง (full name)</label>
+      <input type="text" id="um-fullname" style="width:100%;" />
+    </div>
+    <div class="form-field">
+      <label id="um-pass-label">รหัสผ่าน</label>
+      <input type="password" id="um-password" style="width:100%;" />
+    </div>
+    <div class="form-field" style="margin-bottom:0;">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+        <input type="checkbox" id="um-admin" style="width:15px;height:15px;" />
+        ให้สิทธิ์ Admin
+      </label>
+    </div>
+  </div>
+</div>
+
+<!-- ========== DEPOSIT DETAIL MODAL ========== -->
+<div id="deposit-modal" class="modal-overlay page-hidden">
+  <div class="modal-box" style="position:relative; padding-top:40px;">
+    <div style="position:absolute; top:10px; right:12px; display:flex; gap:8px;">
+      <button class="btn btn-secondary btn-sm" onclick="closeModal('deposit-modal')">ปิด</button>
+      <button class="btn btn-primary btn-sm" onclick="printDepositDoc()">🖨️ พิมพ์เอกสาร</button>
+    </div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<!-- ========== PRINT MODAL ========== -->
+<div id="print-modal" class="modal-overlay page-hidden">
+  <div class="modal-box" style="width:720px; padding-top:16px;">
+    <div class="no-print" style="display:flex; justify-content:flex-end; margin-bottom:8px;">
+      <button class="btn btn-secondary btn-sm" onclick="closeModal('print-modal')" style="margin-right:8px;">ปิด</button>
+      <button class="btn btn-primary btn-sm" onclick="window.print()">🖨️ พิมพ์เอกสาร</button>
+    </div>
+    <div id="print-content"></div>
+  </div>
+</div>
+
+<script>
+// ===========================
+// CONFIG + AUTH
+// ===========================
+const API = '';
+let token = null;
+let currentUser = null;
+let isAdmin = false;
+let depFilter = 'all';
+let odooItems = [];
+let pendingGroups = [];
+let currentDepositForPrint = null;
+
+const BRANCHES = {
+  rama3: { name: 'Rama 3', bank: 'ธนาคารกสิกรไทย', acc: '121-8-11616-3' },
+  kaset:  { name: 'Kaset',  bank: 'ธนาคารกสิกรไทย', acc: '224-1-72635-8' }
+};
+
+function fmt(n) {
+  return '฿' + (n||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+function fmtDate(d) {
+  if (!d) return '-';
+  const [y, m, day] = d.split('-');
+  const months = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  return `${parseInt(day)} ${months[parseInt(m)-1]} ${parseInt(y)+543}`;
+}
+
+async function apiFetch(path, options = {}) {
+  const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
+  if (token) headers['Authorization'] = 'Bearer ' + token;
+  const res = await fetch(API + path, { ...options, headers });
+  if (res.status === 401) { doLogout(); throw new Error('Unauthorized'); }
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'เกิดข้อผิดพลาด');
+  }
+  return res.json();
+}
+
+// ===========================
+// AUTH
+// ===========================
+async function doLogin() {
+  const username = document.getElementById('login-user').value.trim();
+  const password = document.getElementById('login-pass').value;
+  if (!username || !password) { alert('กรุณากรอกชื่อผู้ใช้และรหัสผ่าน'); return; }
+  try {
+    const body = new URLSearchParams({ username, password });
+    const res = await fetch(API + '/api/auth/login', { method: 'POST', body });
+    if (!res.ok) { const e = await res.json(); alert(e.detail || 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง'); return; }
+    const data = await res.json();
+    token = data.access_token;
+    currentUser = data.username;
+    isAdmin = data.is_admin;
+    document.getElementById('nav-user-label').textContent = data.full_name || data.username;
+    document.getElementById('tab-btn-users').style.display = isAdmin ? '' : 'none';
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('sales-date').value = today;
+    document.getElementById('dep-date').value = today;
+    document.getElementById('login-page').style.display = 'none';
+    document.getElementById('app-page').classList.remove('page-hidden');
+    renderConfirmedSales();
+    renderDepositTab();
+  } catch(e) {
+    alert('ไม่สามารถเชื่อมต่อ server ได้: ' + e.message);
+  }
+}
+document.getElementById('login-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
+function doLogout() {
+  token = null; currentUser = null;
+  document.getElementById('login-page').style.display = '';
+  document.getElementById('app-page').classList.add('page-hidden');
+}
+
+// ===========================
+// TABS
+// ===========================
+function switchTab(tab) {
+  ['sales','deposit','history','users'].forEach(t => {
+    document.getElementById('tab-' + t)?.classList.toggle('page-hidden', t !== tab);
+  });
+  document.querySelectorAll('.tabs .tab').forEach(el => {
+    const onclick = el.getAttribute('onclick') || '';
+    el.classList.toggle('active', onclick.includes("'" + tab + "'"));
+  });
+  if (tab === 'deposit') renderDepositTab();
+  if (tab === 'history') renderHistoryTab();
+  if (tab === 'sales')   renderConfirmedSales();
+  if (tab === 'users')   renderUsersTab();
+}
+
+// ===========================
+// SALES TAB — ODOO PULL
+// ===========================
+function resetSalesOdoo() {
+  document.getElementById('sales-odoo-card').style.display = 'none';
+  odooItems = [];
+}
+
+async function loadSalesFromOdoo() {
+  const date   = document.getElementById('sales-date').value;
+  const branch = document.getElementById('sales-branch').value;
+  if (!date) { alert('กรุณาเลือกวันที่'); return; }
+  document.getElementById('sales-odoo-card').style.display = '';
+  document.getElementById('sales-odoo-tbody').innerHTML =
+    `<tr><td colspan="7" style="text-align:center;color:#aaa;padding:20px;">กำลังดึงข้อมูลจาก Odoo...</td></tr>`;
+  document.getElementById('sales-sum-row').style.display = 'none';
+  try {
+    odooItems = await apiFetch(`/api/cash-sales/odoo?date=${date}&branch=${branch}`);
+    renderOdooTable();
+  } catch(e) {
+    document.getElementById('sales-odoo-tbody').innerHTML =
+      `<tr><td colspan="7" style="text-align:center;color:#c0392b;padding:20px;">❌ ${e.message}</td></tr>`;
+  }
+}
+
+async function renderOdooTable() {
+  const date   = document.getElementById('sales-date').value;
+  const branch = document.getElementById('sales-branch').value;
+  const tbody  = document.getElementById('sales-odoo-tbody');
+
+  // Fetch already-confirmed items for this date+branch to mark as done
+  let confirmed = [];
+  try { confirmed = await apiFetch(`/api/cash-sales?date=${date}&branch=${branch}`); } catch(e) {}
+
+  if (!odooItems.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#aaa;padding:20px;">ไม่พบรายการ</td></tr>';
+    return;
+  }
+  tbody.innerHTML = odooItems.map((item, i) => {
+    const already = confirmed.find(s => s.odoo_ref === item.odoo_ref);
+    if (already) {
+      const adj = already.adjusted_amount !== null && Math.abs(already.recorded_amount - already.odoo_amount) > 0.001;
+      return `
+        <tr style="background:#f8f8f5;opacity:0.75;">
+          <td style="text-align:center;"><span title="บันทึกแล้ว" style="font-size:16px;">✅</span></td>
+          <td style="font-size:12px;color:#999;">${item.odoo_ref}</td>
+          <td style="color:#999;">${item.customer_name}</td>
+          <td><span class="badge ${item.sale_type==='pos'?'badge-info':'badge-gray'}" style="opacity:.6;">${item.sale_type==='pos'?'POS':'Invoice'}</span></td>
+          <td class="num" style="color:#999;">${fmt(item.odoo_amount)}</td>
+          <td class="num" style="font-weight:500;${adj?'color:#e67e22;':'color:#999;'}">${fmt(already.recorded_amount)}</td>
+          <td style="font-size:12px;color:#999;">${already.remark||'-'} <span class="badge badge-success" style="font-size:11px;">บันทึกแล้ว</span></td>
+        </tr>`;
+    }
+    return `
+      <tr id="sale-row-${i}">
+        <td style="text-align:center;">
+          <input type="checkbox" class="sale-chk" data-idx="${i}"
+            style="width:15px;height:15px;accent-color:#1a5276;" onchange="updateSalesSum()" />
+        </td>
+        <td style="font-size:12px;color:#555;">${item.odoo_ref}</td>
+        <td>${item.customer_name}</td>
+        <td><span class="badge ${item.sale_type==='pos'?'badge-info':'badge-gray'}">${item.sale_type==='pos'?'POS':'Invoice'}</span></td>
+        <td class="num" style="font-weight:500;">${fmt(item.odoo_amount)}</td>
+        <td>
+          <input type="number" step="0.01" value="${item.odoo_amount.toFixed(2)}"
+            id="sale-amt-${i}" class="sale-amt" oninput="onAmountChange(${i})" />
+        </td>
+        <td>
+          <input type="text" id="sale-rmk-${i}" class="sale-rmk"
+            placeholder="หมายเหตุ (บังคับถ้าปรับยอด)" />
+        </td>
+      </tr>`;
+  }).join('');
+  document.getElementById('sales-check-all').checked = false;
+  updateSalesSum();
+}
+
+function onAmountChange(i) {
+  const orig = odooItems[i].odoo_amount;
+  const adj  = parseFloat(document.getElementById('sale-amt-' + i).value) || 0;
+  const amtEl = document.getElementById('sale-amt-' + i);
+  const rmkEl = document.getElementById('sale-rmk-' + i);
+  const changed = Math.abs(adj - orig) > 0.001;
+  amtEl.classList.toggle('adjusted', changed);
+  rmkEl.classList.toggle('required', changed);
+  updateSalesSum();
+}
+
+function toggleAllSales(checked) {
+  document.querySelectorAll('.sale-chk').forEach(c => { c.checked = checked; });
+  updateSalesSum();
+}
+
+function updateSalesSum() {
+  const chks = document.querySelectorAll('.sale-chk');
+  let total = 0, count = 0;
+  chks.forEach((c, i) => {
+    if (c.checked) {
+      total += parseFloat(document.getElementById('sale-amt-' + i).value) || odooItems[i].odoo_amount;
+      count++;
+    }
+  });
+  document.getElementById('sales-sum-row').style.display = count > 0 ? '' : 'none';
+  document.getElementById('sales-sel-count').textContent = `${count} รายการที่เลือก`;
+  document.getElementById('sales-sel-total').textContent = fmt(total);
+  const allChk = document.getElementById('sales-check-all');
+  if (allChk) allChk.checked = count > 0 && count === chks.length;
+}
+
+async function confirmSales() {
+  const date   = document.getElementById('sales-date').value;
+  const branch = document.getElementById('sales-branch').value;
+  const chks   = document.querySelectorAll('.sale-chk');
+  const items  = [];
+
+  for (let i = 0; i < chks.length; i++) {
+    if (!chks[i].checked) continue;
+    const item   = odooItems[i];
+    const recAmt = parseFloat(document.getElementById('sale-amt-' + i).value);
+    const remark = document.getElementById('sale-rmk-' + i).value.trim();
+    const hasAdj = !isNaN(recAmt) && Math.abs(recAmt - item.odoo_amount) > 0.001;
+    if (hasAdj && !remark) {
+      alert(`รายการ "${item.odoo_ref}" มีการปรับยอด — กรุณาระบุหมายเหตุก่อนบันทึก`);
+      document.getElementById('sale-rmk-' + i).focus();
+      return;
+    }
+    items.push({
+      odoo_ref: item.odoo_ref, customer_name: item.customer_name,
+      sale_type: item.sale_type, odoo_amount: item.odoo_amount,
+      adjusted_amount: hasAdj ? recAmt : null,
+      remark,
+    });
+  }
+  if (!items.length) { alert('กรุณาเลือกรายการอย่างน้อย 1 รายการ'); return; }
+
+  try {
+    await apiFetch('/api/cash-sales/confirm', {
+      method: 'POST',
+      body: JSON.stringify({ date, branch, items }),
+    });
+    alert(`✅ บันทึกสำเร็จ ${items.length} รายการ`);
+    document.getElementById('sales-odoo-card').style.display = 'none';
+    odooItems = [];
+    renderConfirmedSales();
+  } catch(e) {
+    alert('❌ ' + e.message);
+  }
+}
+
+async function renderConfirmedSales() {
+  const date   = document.getElementById('sales-date')?.value || '';
+  const branch = document.getElementById('sales-branch')?.value || '';
+  const container = document.getElementById('sales-confirmed-container');
+  try {
+    const params = new URLSearchParams();
+    if (date)   params.set('date', date);
+    if (branch) params.set('branch', branch);
+    const items = await apiFetch('/api/cash-sales?' + params);
+    if (!items.length) {
+      container.innerHTML = '<p class="text-muted" style="padding:8px 0;">ยังไม่มีรายการที่บันทึกไว้</p>';
+      return;
+    }
+    const total = items.reduce((s, x) => s + x.recorded_amount, 0);
+    container.innerHTML = `
+      <div style="overflow-x:auto;">
+        <table class="tbl" style="min-width:650px;">
+          <thead>
+            <tr><th>วันที่</th><th>สาขา</th><th>เลขที่อ้างอิง</th><th>ลูกค้า</th><th>ประเภท</th>
+            <th class="num">ยอด Odoo</th><th class="num">ยอดที่บันทึก</th><th>หมายเหตุ</th><th>สถานะ</th></tr>
+          </thead>
+          <tbody>
+            ${items.map(s => `<tr>
+              <td style="font-size:12px;">${fmtDate(s.date)}</td>
+              <td><span class="badge ${s.branch==='rama3'?'badge-info':'badge-gray'}">${BRANCHES[s.branch].name}</span></td>
+              <td style="font-size:12px;color:#555;">${s.odoo_ref}</td>
+              <td style="font-size:13px;">${s.customer_name}</td>
+              <td><span class="badge ${s.sale_type==='pos'?'badge-info':'badge-gray'}">${s.sale_type==='pos'?'POS':'Invoice'}</span></td>
+              <td class="num">${fmt(s.odoo_amount)}</td>
+              <td class="num" style="font-weight:500;${s.adjusted_amount!==null?'color:#e67e22;':''}">${fmt(s.recorded_amount)}</td>
+              <td style="font-size:12px;color:#666;">${s.remark||'-'}</td>
+              <td>${s.deposit_id?'<span class="badge badge-success">✓ นำฝากแล้ว</span>':'<span class="badge badge-warning">รอนำฝาก</span>'}</td>
+            </tr>`).join('')}
+          </tbody>
+          <tfoot>
+            <tr style="background:#f0f0ea;font-weight:600;font-size:14px;">
+              <td colspan="6">รวม (${items.length} รายการ)</td>
+              <td class="num" style="color:#1a5276;font-size:16px;">${fmt(total)}</td>
+              <td colspan="2"></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>`;
+  } catch(e) {
+    container.innerHTML = `<p style="color:#c0392b;padding:8px 0;">❌ ${e.message}</p>`;
+  }
+}
+
+// ===========================
+// DEPOSIT TAB
+// ===========================
+function setDepFilter(f) {
+  depFilter = f;
+  ['all','rama3','kaset'].forEach(k => {
+    document.getElementById('dep-filter-' + k).classList.toggle('active', k === f);
+  });
+  renderDepositTab();
+}
+
+async function renderDepositTab() {
+  try {
+    // Pending: all confirmed items without deposit_id
+    const allPending = await apiFetch('/api/cash-sales?deposited=false');
+    // Group by date+branch
+    const map = {};
+    allPending.forEach(s => {
+      const key = s.date + '|' + s.branch;
+      if (!map[key]) map[key] = { date: s.date, branch: s.branch, items: [] };
+      map[key].items.push(s);
+    });
+    pendingGroups = Object.values(map).sort((a,b) => b.date.localeCompare(a.date));
+
+    const filtered = depFilter === 'all' ? pendingGroups : pendingGroups.filter(g => g.branch === depFilter);
+    const pendTotal = pendingGroups.reduce((s, g) => s + g.items.reduce((a, x) => a + x.recorded_amount, 0), 0);
+
+    document.getElementById('dep-pending-total').textContent = fmt(pendTotal);
+    document.getElementById('dep-pending-days').textContent = pendingGroups.length + ' กลุ่ม';
+
+    const pendList = document.getElementById('pending-deposit-list');
+    if (!filtered.length) {
+      pendList.innerHTML = '<p class="text-muted" style="padding:8px 0;">ไม่มีรายการที่รอนำฝาก</p>';
+      document.getElementById('pending-sum-row').style.display = 'none';
+    } else {
+      pendList.innerHTML = filtered.map(g => {
+        const total = g.items.reduce((s, x) => s + x.recorded_amount, 0);
+        const gKey  = g.date + '__' + g.branch;
+        return `
+          <div class="check-item" id="depgrp-${gKey}" onclick="toggleDepGroup('${gKey}', this)">
+            <input type="checkbox" id="depchk-${gKey}" style="width:16px;height:16px;accent-color:#1a5276;pointer-events:none;" />
+            <div class="ci-info">
+              <div class="ci-date">${fmtDate(g.date)} — ${BRANCHES[g.branch].name}</div>
+              <div class="ci-branch">${g.items.length} รายการ | ${BRANCHES[g.branch].bank} บัญชี ${BRANCHES[g.branch].acc}</div>
+            </div>
+            <div class="ci-amount">${fmt(total)}</div>
+          </div>`;
+      }).join('');
+      updateDepSum();
+    }
+
+    // Done deposits
+    const deposits = await apiFetch('/api/deposits');
+    const thisMonth = new Date().toISOString().slice(0,7);
+    const doneDeps  = deposits.filter(d => d.deposit_date.startsWith(thisMonth));
+    document.getElementById('dep-done-total').textContent = fmt(doneDeps.reduce((s,d)=>s+d.total_amount,0));
+    document.getElementById('dep-done-count').textContent = doneDeps.length + ' ครั้ง';
+
+    renderDoneDeposits(deposits);
+  } catch(e) {
+    console.error(e);
+  }
+}
+
+function toggleDepGroup(gKey, el) {
+  const chk = document.getElementById('depchk-' + gKey);
+  chk.checked = !chk.checked;
+  el.classList.toggle('checked', chk.checked);
+  updateDepSum();
+}
+
+function updateDepSum() {
+  const filtered = depFilter === 'all' ? pendingGroups : pendingGroups.filter(g => g.branch === depFilter);
+  let total = 0, count = 0;
+  filtered.forEach(g => {
+    const chk = document.getElementById('depchk-' + g.date + '__' + g.branch);
+    if (chk && chk.checked) {
+      total += g.items.reduce((s, x) => s + x.recorded_amount, 0);
+      count += g.items.length;
+    }
+  });
+  document.getElementById('pending-sum-row').style.display = count > 0 ? '' : 'none';
+  document.getElementById('pending-sel-count').textContent = `${count} รายการที่เลือก`;
+  document.getElementById('pending-sel-total').textContent = fmt(total);
+}
+
+function getSelectedGroups() {
+  const filtered = depFilter === 'all' ? pendingGroups : pendingGroups.filter(g => g.branch === depFilter);
+  return filtered.filter(g => {
+    const chk = document.getElementById('depchk-' + g.date + '__' + g.branch);
+    return chk && chk.checked;
+  });
+}
+
+async function confirmDeposit() {
+  const chosen  = getSelectedGroups();
+  const depDate = document.getElementById('dep-date').value;
+  if (!chosen.length) { alert('กรุณาเลือกรายการที่จะนำฝากอย่างน้อย 1 กลุ่ม'); return; }
+  if (!depDate) { alert('กรุณาระบุวันที่นำฝาก'); return; }
+
+  // Group by branch → one deposit per branch
+  const byBranch = {};
+  chosen.forEach(g => {
+    if (!byBranch[g.branch]) byBranch[g.branch] = [];
+    byBranch[g.branch].push(...g.items);
+  });
+
+  try {
+    for (const [branch, items] of Object.entries(byBranch)) {
+      await apiFetch('/api/deposits', {
+        method: 'POST',
+        body: JSON.stringify({ branch, deposit_date: depDate, sale_ids: items.map(x => x.id), note: '' }),
+      });
+    }
+    const totalItems = chosen.reduce((s,g)=>s+g.items.length, 0);
+    const totalAmt   = chosen.reduce((s,g)=>s+g.items.reduce((a,x)=>a+x.recorded_amount,0), 0);
+    alert(`✅ บันทึกการนำฝากสำเร็จ!\nวันที่ฝาก: ${fmtDate(depDate)}\nยอดรวม: ${fmt(totalAmt)}\nจำนวน: ${totalItems} รายการ`);
+    renderDepositTab();
+    renderConfirmedSales();
+  } catch(e) {
+    alert('❌ ' + e.message);
+  }
+}
+
+function buildGroupedRows(chosen) {
+  return chosen.map(g => ({
+    date: g.date, branch: g.branch,
+    count: g.items.length,
+    total: g.items.reduce((s, x) => s + x.recorded_amount, 0)
+  }));
+}
+
+function printPendingSelection() {
+  const chosen  = getSelectedGroups();
+  const depDate = document.getElementById('dep-date').value;
+  if (!chosen.length) { alert('กรุณาเลือกรายการที่จะพิมพ์อย่างน้อย 1 กลุ่ม'); return; }
+
+  const grouped  = buildGroupedRows(chosen);
+  const total    = grouped.reduce((s, r) => s + r.total, 0);
+  const branches = [...new Set(chosen.map(g => g.branch))];
+  const docNo    = 'DEP-' + (depDate||new Date().toISOString().split('T')[0]).replace(/-/g,'') + '-TMP';
+
+  const bankInfo = branches.map(b => {
+    const br = BRANCHES[b];
+    const brTotal = grouped.filter(r => r.branch === b).reduce((s, r) => s + r.total, 0);
+    return `${br.name}: ${br.bank} &nbsp;|&nbsp; บัญชีเลขที่ ${br.acc} &nbsp;|&nbsp; <strong>${fmt(brTotal)}</strong>`;
+  }).join('<br>');
+
+  const rows = grouped.map((r, i) => `
+    <tr>
+      <td style="text-align:center;">${i+1}</td>
+      <td>${fmtDate(r.date)}</td>
+      <td>${BRANCHES[r.branch].name}</td>
+      <td style="color:#888;font-size:12px;">${r.count} รายการ</td>
+      <td style="text-align:right;font-weight:500;">${fmt(r.total)}</td>
+    </tr>`).join('');
+
+  document.getElementById('print-content').innerHTML = `
+    <div class="print-doc">
+      <h2>ใบสรุปยอดเงินสดสำหรับนำฝาก</h2>
+      <div class="print-sub">เลขที่เอกสาร: ${docNo} &nbsp;|&nbsp; วันที่พิมพ์: ${fmtDate(new Date().toISOString().split('T')[0])} &nbsp;|&nbsp; จัดทำโดย: ${currentUser}</div>
+      ${depDate ? `<div style="text-align:center;font-size:14px;font-weight:500;margin-bottom:12px;">วันที่นำฝาก: ${fmtDate(depDate)}</div>` : ''}
+      <div style="background:#eaf2fb;border-radius:6px;padding:10px 14px;font-size:13px;margin-bottom:16px;line-height:2;">
+        <strong>บัญชีปลายทาง</strong><br>${bankInfo}
+      </div>
+      <table class="tbl" style="margin-bottom:16px;">
+        <thead><tr>
+          <th style="text-align:center;width:36px;">ที่</th><th>วันที่</th><th>สาขา</th><th>จำนวนรายการ</th>
+          <th style="text-align:right;">ยอดเงินสด (บาท)</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot><tr style="background:#f0f0ea;font-weight:600;font-size:15px;">
+          <td colspan="4">รวมทั้งหมด (${grouped.length} วัน)</td>
+          <td style="text-align:right;color:#1a5276;font-size:17px;">${fmt(total)}</td>
+        </tr></tfoot>
+      </table>
+      <div class="sign-row">
+        <div class="sign-box"><div class="sign-label">ผู้ตรวจนับเงินสด</div>
+          <div class="sign-line">ลายเซ็น ......................................................................</div>
+          <div style="font-size:12px;color:#888;margin-top:6px;">วันที่ ..........................................</div></div>
+        <div class="sign-box"><div class="sign-label">ผู้นำฝาก</div>
+          <div class="sign-line">ลายเซ็น ......................................................................</div>
+          <div style="font-size:12px;color:#888;margin-top:6px;">วันที่ ..........................................</div></div>
+      </div>
+    </div>`;
+  document.getElementById('print-modal').classList.remove('page-hidden');
+}
+
+// ===========================
+// DEPOSIT HISTORY
+// ===========================
+let _allDeposits = [];
+
+function renderDoneDeposits(deps) {
+  if (deps !== undefined) _allDeposits = deps;
+  const fDate  = (document.getElementById('hist-dep-date') ?.value || '').trim();
+  const fDocNo = (document.getElementById('hist-dep-docno')?.value || '').trim().toLowerCase();
+  const fRef   = (document.getElementById('hist-dep-ref')  ?.value || '').trim().toLowerCase();
+
+  let filtered = [..._allDeposits].sort((a,b) => b.deposit_date.localeCompare(a.deposit_date));
+  if (fDate)  filtered = filtered.filter(d => d.deposit_date === fDate);
+  if (fDocNo) filtered = filtered.filter(d => d.doc_no.toLowerCase().includes(fDocNo));
+  if (fRef) {
+    // For ref search we'd need sale items; filter by doc_no as approximation, or show all
+    // Full ref search happens in deposit detail — just filter by doc_no for now
+    filtered = filtered.filter(d => d.doc_no.toLowerCase().includes(fRef));
+  }
+
+  const doneList = document.getElementById('done-deposit-list');
+  if (!filtered.length) {
+    doneList.innerHTML = '<p class="text-muted" style="padding:8px 0;">ไม่พบรายการที่ตรงกับการค้นหา</p>';
+    return;
+  }
+  doneList.innerHTML = `
+    <table class="tbl">
+      <thead><tr>
+        <th>เลขที่เอกสาร</th><th>วันที่นำฝาก</th><th>สาขา</th>
+        <th class="num">ยอดรวม</th><th>รายการ</th><th></th>
+      </tr></thead>
+      <tbody>
+        ${filtered.map(d => `<tr>
+          <td style="font-size:12px;color:#1a5276;font-weight:500;">${d.doc_no}</td>
+          <td>${fmtDate(d.deposit_date)}</td>
+          <td><span class="badge ${d.branch==='rama3'?'badge-info':'badge-gray'}">${BRANCHES[d.branch].name}</span></td>
+          <td class="num" style="font-weight:600;">${fmt(d.total_amount)}</td>
+          <td style="font-size:12px;color:#888;">${d.sale_ids.length} รายการ</td>
+          <td><button class="btn btn-secondary btn-sm" onclick="showDepositDetail(${d.id})">ดู</button></td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+function clearDepHistFilter() {
+  ['hist-dep-date','hist-dep-docno','hist-dep-ref'].forEach(id => { document.getElementById(id).value = ''; });
+  renderDoneDeposits();
+}
+
+// ===========================
+// DEPOSIT DETAIL
+// ===========================
+async function showDepositDetail(depId) {
+  closeModal('print-modal');
+  try {
+    const dep = await apiFetch('/api/deposits/' + depId);
+    currentDepositForPrint = dep;
+    const b = BRANCHES[dep.branch];
+
+    const dateMap = {};
+    (dep.items || []).forEach(s => {
+      if (!dateMap[s.date]) dateMap[s.date] = { date: s.date, count: 0, total: 0 };
+      dateMap[s.date].count++;
+      dateMap[s.date].total += s.recorded_amount;
+    });
+    const grouped = Object.values(dateMap).sort((a,b) => b.date.localeCompare(a.date));
+
+    document.getElementById('modal-body').innerHTML = `
+      <div style="margin-bottom:12px;">
+        <div style="font-size:13px;color:#888;">เลขที่เอกสาร: <strong style="color:#1a5276;">${dep.doc_no}</strong></div>
+        <div style="font-size:13px;color:#888;margin-top:2px;">${b.name} — ${b.bank} บัญชี ${b.acc}</div>
+      </div>
+      <div class="grid-2" style="margin-bottom:16px;">
+        <div class="stat accent"><div class="stat-label">วันที่นำฝาก</div><div class="stat-value" style="font-size:16px;">${fmtDate(dep.deposit_date)}</div></div>
+        <div class="stat success"><div class="stat-label">ยอดรวมทั้งหมด</div><div class="stat-value">${fmt(dep.total_amount)}</div></div>
+      </div>
+      <table class="tbl">
+        <thead><tr><th>วันที่</th><th class="num">จำนวนรายการ</th><th class="num">ยอดเงินสด</th></tr></thead>
+        <tbody>
+          ${grouped.map(r => `<tr>
+            <td>${fmtDate(r.date)}</td>
+            <td class="num" style="color:#888;">${r.count} รายการ</td>
+            <td class="num" style="font-weight:500;">${fmt(r.total)}</td>
+          </tr>`).join('')}
+        </tbody>
+        <tfoot><tr style="background:#f0f0ea;font-weight:600;">
+          <td>รวม (${grouped.length} วัน)</td>
+          <td class="num" style="color:#888;">${(dep.items||[]).length} รายการ</td>
+          <td class="num" style="color:#1a5276;font-size:16px;">${fmt(dep.total_amount)}</td>
+        </tr></tfoot>
+      </table>`;
+    document.getElementById('deposit-modal').classList.remove('page-hidden');
+  } catch(e) {
+    alert('❌ ' + e.message);
+  }
+}
+
+function printDepositDoc() {
+  if (!currentDepositForPrint) return;
+  const dep = currentDepositForPrint;
+  const b   = BRANCHES[dep.branch];
+
+  const dateMap = {};
+  (dep.items || []).forEach(s => {
+    if (!dateMap[s.date]) dateMap[s.date] = { date: s.date, count: 0, total: 0 };
+    dateMap[s.date].count++;
+    dateMap[s.date].total += s.recorded_amount;
+  });
+  const grouped = Object.values(dateMap).sort((a,b) => b.date.localeCompare(a.date));
+
+  const rows = grouped.map((r, i) => `
+    <tr>
+      <td style="text-align:center;">${i+1}</td>
+      <td>${fmtDate(r.date)}</td>
+      <td style="color:#888;font-size:12px;">${r.count} รายการ</td>
+      <td style="text-align:right;font-weight:500;">${fmt(r.total)}</td>
+    </tr>`).join('');
+
+  document.getElementById('print-content').innerHTML = `
+    <div class="print-doc">
+      <h2>ใบสรุปยอดเงินสดสำหรับนำฝาก</h2>
+      <div class="print-sub">เลขที่เอกสาร: ${dep.doc_no} &nbsp;|&nbsp; วันที่พิมพ์: ${fmtDate(new Date().toISOString().split('T')[0])} &nbsp;|&nbsp; จัดทำโดย: ${dep.created_by}</div>
+      <div style="text-align:center;font-size:14px;font-weight:500;margin-bottom:12px;">วันที่นำฝาก: ${fmtDate(dep.deposit_date)}</div>
+      <div style="background:#eaf2fb;border-radius:6px;padding:10px 14px;font-size:13px;margin-bottom:16px;line-height:2;">
+        <strong>บัญชีปลายทาง</strong><br>${b.name}: ${b.bank} &nbsp;|&nbsp; บัญชีเลขที่ ${b.acc} &nbsp;|&nbsp; <strong>${fmt(dep.total_amount)}</strong>
+      </div>
+      <table class="tbl" style="margin-bottom:16px;">
+        <thead><tr>
+          <th style="text-align:center;width:36px;">ที่</th><th>วันที่</th><th>จำนวนรายการ</th>
+          <th style="text-align:right;">ยอดเงินสด (บาท)</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot><tr style="background:#f0f0ea;font-weight:600;font-size:15px;">
+          <td colspan="3">รวมทั้งหมด (${grouped.length} วัน)</td>
+          <td style="text-align:right;color:#1a5276;font-size:17px;">${fmt(dep.total_amount)}</td>
+        </tr></tfoot>
+      </table>
+      <div class="sign-row">
+        <div class="sign-box"><div class="sign-label">ผู้ตรวจนับเงินสด</div>
+          <div class="sign-line">ลายเซ็น ......................................................................</div>
+          <div style="font-size:12px;color:#888;margin-top:6px;">วันที่ ..........................................</div></div>
+        <div class="sign-box"><div class="sign-label">ผู้นำฝาก</div>
+          <div class="sign-line">ลายเซ็น ......................................................................</div>
+          <div style="font-size:12px;color:#888;margin-top:6px;">วันที่ ..........................................</div></div>
+      </div>
+    </div>`;
+  closeModal('deposit-modal');
+  document.getElementById('print-modal').classList.remove('page-hidden');
+}
+
+// ===========================
+// HISTORY TAB
+// ===========================
+let _histItems = [];
+
+function clearHistFilter() {
+  ['hist-date','hist-keyword'].forEach(id => { document.getElementById(id).value = ''; });
+  document.getElementById('hist-branch').value = '';
+  document.getElementById('hist-status').value = '';
+  renderHistoryTab();
+}
+
+async function renderHistoryTab() {
+  try {
+    _histItems = await apiFetch('/api/cash-sales');
+  } catch(e) { return; }
+
+  document.getElementById('hist-count').textContent = _histItems.length;
+  document.getElementById('hist-match').textContent = _histItems.filter(s => s.adjusted_amount === null).length;
+  document.getElementById('hist-adjusted').textContent = _histItems.filter(s => s.adjusted_amount !== null).length;
+  document.getElementById('hist-deposited').textContent = _histItems.filter(s => s.deposit_id).length;
+
+  applyHistFilter();
+}
+
+function applyHistFilter() {
+  const fDate   = document.getElementById('hist-date')   ?.value || '';
+  const fBranch = document.getElementById('hist-branch') ?.value || '';
+  const fKw     = (document.getElementById('hist-keyword')?.value || '').trim().toLowerCase();
+  const fStatus = document.getElementById('hist-status') ?.value || '';
+
+  let rows = [..._histItems].sort((a,b) => b.date.localeCompare(a.date) || a.id - b.id);
+  if (fDate)   rows = rows.filter(s => s.date === fDate);
+  if (fBranch) rows = rows.filter(s => s.branch === fBranch);
+  if (fKw)     rows = rows.filter(s => s.odoo_ref.toLowerCase().includes(fKw) || s.customer_name.toLowerCase().includes(fKw));
+  if (fStatus === 'pending')   rows = rows.filter(s => !s.deposit_id);
+  if (fStatus === 'deposited') rows = rows.filter(s => !!s.deposit_id);
+
+  const tbody = document.getElementById('history-tbody');
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#aaa;padding:24px;">ไม่พบรายการที่ตรงกับการค้นหา</td></tr>';
+    return;
+  }
+  tbody.innerHTML = rows.map(s => `<tr>
+    <td style="font-size:12px;">${fmtDate(s.date)}</td>
+    <td><span class="badge ${s.branch==='rama3'?'badge-info':'badge-gray'}">${BRANCHES[s.branch].name}</span></td>
+    <td style="font-size:12px;color:#555;">${s.odoo_ref}</td>
+    <td style="font-size:13px;">${s.customer_name}</td>
+    <td><span class="badge ${s.sale_type==='pos'?'badge-info':'badge-gray'}">${s.sale_type==='pos'?'POS':'Invoice'}</span></td>
+    <td class="num">${fmt(s.odoo_amount)}</td>
+    <td class="num" style="font-weight:500;${s.adjusted_amount!==null?'color:#e67e22;':''}">${fmt(s.recorded_amount)}</td>
+    <td>${s.deposit_id?'<span class="badge badge-success">✓ นำฝากแล้ว</span>':'<span class="badge badge-warning">รอนำฝาก</span>'}</td>
+  </tr>`).join('');
+}
+
+// ===========================
+// USERS TAB (admin only)
+// ===========================
+let _users = [];
+
+async function renderUsersTab() {
+  try {
+    _users = await apiFetch('/api/users');
+  } catch(e) {
+    document.getElementById('users-table-container').innerHTML = `<p style="color:#c0392b;">❌ ${e.message}</p>`;
+    return;
+  }
+  if (!_users.length) {
+    document.getElementById('users-table-container').innerHTML = '<p class="text-muted">ยังไม่มีผู้ใช้</p>';
+    return;
+  }
+  document.getElementById('users-table-container').innerHTML = `
+    <table class="tbl">
+      <thead><tr><th>Username</th><th>ชื่อแสดง</th><th>สิทธิ์</th><th>สถานะ</th><th></th></tr></thead>
+      <tbody>
+        ${_users.map(u => `<tr>
+          <td style="font-weight:500;">${u.username}</td>
+          <td>${u.full_name||'-'}</td>
+          <td>${u.is_admin?'<span class="badge badge-info">Admin</span>':'<span class="badge badge-gray">User</span>'}</td>
+          <td>${u.is_active?'<span class="badge badge-success">ใช้งาน</span>':'<span class="badge badge-warning">ปิดใช้งาน</span>'}</td>
+          <td style="display:flex;gap:6px;">
+            <button class="btn btn-secondary btn-sm" onclick="openUserModal(${u.id})">แก้ไข</button>
+            ${u.username!==currentUser?`<button class="btn btn-sm" style="background:#e74c3c;color:#fff;" onclick="deleteUser(${u.id},'${u.username}')">ลบ</button>`:''}
+          </td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+function openUserModal(userId) {
+  document.getElementById('um-id').value = userId || '';
+  if (userId) {
+    const u = _users.find(x => x.id === userId);
+    document.getElementById('user-modal-title').textContent = 'แก้ไขผู้ใช้';
+    document.getElementById('um-username').value = u.username;
+    document.getElementById('um-username').disabled = true;
+    document.getElementById('um-fullname').value = u.full_name || '';
+    document.getElementById('um-password').value = '';
+    document.getElementById('um-pass-label').textContent = 'รหัสผ่านใหม่ (เว้นว่างถ้าไม่เปลี่ยน)';
+    document.getElementById('um-admin').checked = u.is_admin;
+  } else {
+    document.getElementById('user-modal-title').textContent = 'เพิ่มผู้ใช้ใหม่';
+    document.getElementById('um-username').value = '';
+    document.getElementById('um-username').disabled = false;
+    document.getElementById('um-fullname').value = '';
+    document.getElementById('um-password').value = '';
+    document.getElementById('um-pass-label').textContent = 'รหัสผ่าน';
+    document.getElementById('um-admin').checked = false;
+  }
+  document.getElementById('user-modal').classList.remove('page-hidden');
+}
+
+async function saveUser() {
+  const userId   = document.getElementById('um-id').value;
+  const username = document.getElementById('um-username').value.trim();
+  const fullName = document.getElementById('um-fullname').value.trim();
+  const password = document.getElementById('um-password').value;
+  const isAdmin  = document.getElementById('um-admin').checked;
+
+  try {
+    if (userId) {
+      const body = { full_name: fullName, is_admin: isAdmin };
+      if (password) body.password = password;
+      await apiFetch('/api/users/' + userId, { method: 'PUT', body: JSON.stringify(body) });
+    } else {
+      if (!username || !password) { alert('กรุณากรอก username และ password'); return; }
+      await apiFetch('/api/users', { method: 'POST', body: JSON.stringify({ username, full_name: fullName, password, is_admin: isAdmin }) });
+    }
+    closeModal('user-modal');
+    renderUsersTab();
+  } catch(e) {
+    alert('❌ ' + e.message);
+  }
+}
+
+async function deleteUser(userId, username) {
+  if (!confirm(`ต้องการลบผู้ใช้ "${username}" หรือไม่?`)) return;
+  try {
+    await apiFetch('/api/users/' + userId, { method: 'DELETE' });
+    renderUsersTab();
+  } catch(e) {
+    alert('❌ ' + e.message);
+  }
+}
+
+async function changeMyPassword() {
+  const oldPass = document.getElementById('cp-old').value;
+  const newPass = document.getElementById('cp-new').value;
+  if (!oldPass || !newPass) { alert('กรุณากรอกรหัสผ่านให้ครบ'); return; }
+  try {
+    await apiFetch('/api/users/change-password', { method: 'POST', body: JSON.stringify({ old_password: oldPass, new_password: newPass }) });
+    alert('✅ เปลี่ยนรหัสผ่านสำเร็จ');
+    document.getElementById('cp-old').value = '';
+    document.getElementById('cp-new').value = '';
+  } catch(e) {
+    alert('❌ ' + e.message);
+  }
+}
+
+// ===========================
+// MODAL
+// ===========================
+function closeModal(id) {
+  document.getElementById(id).classList.add('page-hidden');
+}
+document.querySelectorAll('.modal-overlay').forEach(el => {
+  el.addEventListener('click', function(e) {
+    if (e.target === this) this.classList.add('page-hidden');
+  });
+});
+</script>
+</body>
+</html>
