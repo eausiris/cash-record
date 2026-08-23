@@ -226,9 +226,11 @@
     .nav-logo { font-size: 14px; }
     .nav-logo span { display: none; }
 
-    /* Tabs: scrollable row */
-    .tabs { gap: 1px; padding: 2px; overflow-x: auto; flex-wrap: nowrap; }
-    .tab { flex: none; font-size: 11px; padding: 7px 10px; white-space: nowrap; }
+    /* Tabs: 2x2 grid on mobile */
+    .tabs { flex-wrap: wrap; gap: 4px; padding: 4px; background: #e8e8e0; border-radius: 10px; }
+    .tab { flex: 1 1 45%; font-size: 13px; padding: 11px 6px; white-space: nowrap;
+      min-height: 44px; border-radius: 8px; }
+    .tab.active { background: #fff; color: #c47c00; }
 
     /* Cards */
     .card { padding: 14px 12px; }
