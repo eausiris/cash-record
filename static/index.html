@@ -287,6 +287,9 @@
     .tab { font-size: 10px; padding: 6px 8px; }
   }
 </style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/l10n/th.js"></script>
 </head>
 <body>
 
@@ -676,6 +679,20 @@
 // CONFIG + AUTH
 // ===========================
 const API = '';
+// Init date pickers
+const fpOpts = {
+  dateFormat: 'd/m/Y',
+  locale: 'th',
+  allowInput: true,
+  disableMobile: false,
+};
+document.addEventListener('DOMContentLoaded', () => {
+  flatpickr('#sales-date',    { ...fpOpts });
+  flatpickr('#dep-date',      { ...fpOpts });
+  flatpickr('#hist-dep-date', { ...fpOpts, onChange: () => renderDoneDeposits() });
+  flatpickr('#hist-date',     { ...fpOpts, onChange: () => renderHistoryTab() });
+});
+
 let token = null;
 let currentUser = null;
 let isAdmin = false;
