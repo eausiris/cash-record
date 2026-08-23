@@ -218,6 +218,65 @@
   .sale-amt.adjusted { border-color: #e67e22; background: #fef9e7; }
   .sale-rmk { width: 200px; border: 1px solid #d8d8d0; border-radius: 5px; padding: 5px 8px; font-size: 12px; font-family: inherit; }
   .sale-rmk.required { border-color: #e74c3c; }
+
+  /* ===== MOBILE RESPONSIVE ===== */
+  @media (max-width: 768px) {
+    .page { padding: 12px 10px; }
+    .nav { padding: 0 12px; height: 48px; }
+    .nav-logo { font-size: 14px; }
+    .nav-logo span { display: none; }
+
+    /* Tabs: scrollable row */
+    .tabs { gap: 1px; padding: 2px; overflow-x: auto; flex-wrap: nowrap; }
+    .tab { flex: none; font-size: 11px; padding: 7px 10px; white-space: nowrap; }
+
+    /* Cards */
+    .card { padding: 14px 12px; }
+
+    /* Form controls full-width */
+    .form-field input, .form-field select { font-size: 16px; } /* prevent iOS zoom */
+
+    /* Flex stacks */
+    .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+
+    /* Stat cards 2-col */
+    .grid-4 { grid-template-columns: 1fr 1fr; }
+
+    /* Tables: scrollable */
+    .tbl { font-size: 13px; }
+    .tbl th, .tbl td { padding: 8px 8px; }
+    div:has(> table.tbl) { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+    /* Filter bars stack */
+    .card > div[style*="display:flex"] { flex-wrap: wrap !important; }
+    .card > div[style*="display:flex"] .form-field { width: 100%; }
+    .card > div[style*="display:flex"] input[type=text],
+    .card > div[style*="display:flex"] input[type=date],
+    .card > div[style*="display:flex"] select { width: 100% !important; }
+
+    /* Buttons full-width on mobile if alone */
+    .btn-full { width: 100%; }
+
+    /* Modal full-screen */
+    .modal-box { width: 100% !important; max-width: 100% !important; max-height: 95vh !important;
+      border-radius: 12px 12px 0 0 !important; margin-top: auto; padding: 20px 14px !important; }
+    .modal-overlay { align-items: flex-end !important; }
+
+    /* Branch selector stack */
+    .branch-selector { flex-direction: column; }
+
+    /* Sale amount input narrower */
+    .sale-amt { width: 90px; }
+    .sale-rmk { width: 130px; }
+
+    /* Login box */
+    .login-box { width: 95vw; padding: 28px 20px; }
+  }
+
+  @media (max-width: 480px) {
+    .grid-4 { grid-template-columns: 1fr; }
+    .tab { font-size: 10px; padding: 6px 8px; }
+  }
 </style>
 </head>
 <body>
