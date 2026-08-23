@@ -226,25 +226,18 @@
     .nav-logo { font-size: 14px; }
     .nav-logo span { display: none; }
 
-    /* Tabs: bottom nav bar on mobile */
-    .tabs {
-      position: fixed; bottom: 0; left: 0; right: 0; z-index: 150;
-      background: #fff; border-top: 1px solid #e5e5e0;
-      border-radius: 0; padding: 0; gap: 0;
-      box-shadow: 0 -2px 8px rgba(0,0,0,.08);
-      margin-bottom: 0;
+    /* Hide desktop tabs, show hamburger on mobile */
+    .tabs { display: none !important; }
+    #hamburger-btn { display: block !important; }
+    .hmenu-item {
+      display: block; width: 100%; text-align: left;
+      padding: 14px 20px; font-size: 15px; font-weight: 500;
+      background: none; border: none; cursor: pointer; color: #333;
+      border-bottom: 1px solid #f0f0ea;
     }
-    .tab {
-      flex: 1; font-size: 10px; padding: 8px 2px 6px;
-      border-radius: 0; color: #999; display: flex;
-      flex-direction: column; align-items: center; gap: 2px;
-      min-height: 52px; white-space: nowrap;
-    }
-    .tab.active { color: #c47c00; background: #fffbf0; border-top: 2px solid #f8af3c; }
-    /* push page content above bottom nav */
-    .page { padding-bottom: 70px; }
-    /* hide top tabs background */
-    .tabs { background: #fff; }
+    .hmenu-item:active { background: #fff8e7; color: #c47c00; }
+    /* Show admin menu item when admin */
+    .page { padding-bottom: 16px; }
 
     /* Cards */
     .card { padding: 14px 12px; }
@@ -329,7 +322,19 @@
     <div class="nav-right">
       <span class="nav-user" id="nav-user-label">admin</span>
       <button class="nav-logout" onclick="doLogout()">ออกจากระบบ</button>
+      <!-- hamburger: mobile only -->
+      <button id="hamburger-btn" onclick="toggleHamburger()"
+        style="display:none;background:none;border:none;cursor:pointer;padding:6px;font-size:22px;line-height:1;color:#555;">☰</button>
     </div>
+  </div>
+
+  <!-- mobile hamburger menu -->
+  <div id="hamburger-menu" style="display:none;position:fixed;top:48px;right:0;left:0;z-index:140;
+    background:#fff;border-bottom:1px solid #e5e5e0;box-shadow:0 4px 12px rgba(0,0,0,.12);padding:8px 0;">
+    <button onclick="switchTab('sales');toggleHamburger()"   class="hmenu-item">🧾 รายการขายเงินสด</button>
+    <button onclick="switchTab('deposit');toggleHamburger()" class="hmenu-item">🏦 จัดการการนำฝาก</button>
+    <button onclick="switchTab('history');toggleHamburger()" class="hmenu-item">📋 ประวัติรายการ</button>
+    <button id="hmenu-users" onclick="switchTab('users');toggleHamburger()" class="hmenu-item" style="display:none;">⚙️ จัดการผู้ใช้</button>
   </div>
 
   <div class="page">
@@ -739,7 +744,7 @@ async function doLogin() {
     currentUser = data.username;
     isAdmin = data.is_admin;
     document.getElementById('nav-user-label').textContent = data.full_name || data.username;
-    document.getElementById('tab-btn-users').style.display = isAdmin ? '' : 'none';
+    document.getElementById('tab-btn-users').style.display = isAdmin ? '' : 'none'; if(document.getElementById('hmenu-users')) document.getElementById('hmenu-users').style.display = isAdmin ? 'block' : 'none';
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('sales-date').value = isoToDMY(today);
     document.getElementById('dep-date').value = isoToDMY(today);
@@ -754,6 +759,19 @@ async function doLogin() {
   }
 }
 document.getElementById('login-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
+function toggleHamburger() {
+  const m = document.getElementById('hamburger-menu');
+  m.style.display = m.style.display === 'none' ? 'block' : 'none';
+}
+// close hamburger when clicking outside
+document.addEventListener('click', e => {
+  const m = document.getElementById('hamburger-menu');
+  const btn = document.getElementById('hamburger-btn');
+  if (m && btn && !m.contains(e.target) && !btn.contains(e.target)) {
+    m.style.display = 'none';
+  }
+});
 
 function doLogout() {
   token = null; currentUser = null;
@@ -776,7 +794,7 @@ function doLogout() {
     const res = await fetch(API + '/api/health', { headers: { 'Authorization': 'Bearer ' + saved } });
     if (!res.ok) { doLogout(); return; }
     document.getElementById('nav-user-label').textContent = u.full_name || u.username;
-    document.getElementById('tab-btn-users').style.display = isAdmin ? '' : 'none';
+    document.getElementById('tab-btn-users').style.display = isAdmin ? '' : 'none'; if(document.getElementById('hmenu-users')) document.getElementById('hmenu-users').style.display = isAdmin ? 'block' : 'none';
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('sales-date').value = isoToDMY(today);
     document.getElementById('dep-date').value = isoToDMY(today);
