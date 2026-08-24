@@ -417,7 +417,7 @@
           </div>
           <!-- เงินสดกิน -->
           <div style="margin-bottom:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-            <div style="font-size:14px;font-weight:600;color:#c0392b;">🍽️ เงินสดกิน (หักออกจากยอดนำฝาก)</div>
+            <div style="font-size:14px;font-weight:600;color:#c0392b;">🍽️ เงินสดกิน (เพิ่มเข้ายอดนำฝาก)</div>
             <input type="number" id="cash-eaten-input" min="0" step="0.01" placeholder="0.00"
               style="width:140px;border:1px solid #f5b7b1;border-radius:5px;padding:5px 8px;font-size:14px;text-align:right;"
               oninput="updateSalesSum()" />
@@ -429,7 +429,7 @@
               <div style="font-size:12px;color:#888;">ยอดขายที่เลือก</div>
               <div id="sales-sel-total" style="font-size:20px;font-weight:600;color:#c47c00;">฿0.00</div>
               <div id="sales-net-row" style="display:none;margin-top:4px;">
-                <div style="font-size:12px;color:#888;">หักค่าใช้จ่าย + เงินสดกิน</div>
+                <div style="font-size:12px;color:#888;">หักค่าใช้จ่าย, บวกเงินสดกิน</div>
                 <div id="sales-net-total" style="font-size:22px;font-weight:700;color:#1e8449;">฿0.00</div>
               </div>
             </div>
@@ -968,8 +968,7 @@ function updateSalesSum() {
   // Expenses + เงินสดกิน
   const expenses  = getTotalExpenses();
   const eaten     = parseFloat(document.getElementById('cash-eaten-input')?.value) || 0;
-  const deduct    = expenses + eaten;
-  const net       = total - deduct;
+  const net       = total - expenses + eaten;
   const expTotalRow = document.getElementById('expense-total-row');
   const netRow    = document.getElementById('sales-net-row');
   if (expTotalRow) {
@@ -1028,7 +1027,7 @@ async function confirmSales() {
       odoo_ref: `EATEN-${date}`,
       customer_name: 'เงินสดกิน',
       sale_type: 'expense',
-      odoo_amount: -Math.abs(eaten),
+      odoo_amount: Math.abs(eaten),
       adjusted_amount: null,
       remark: 'เงินสดกิน',
     });
