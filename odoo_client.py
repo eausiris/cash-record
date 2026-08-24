@@ -46,16 +46,22 @@ def get_cash_sales(date: str, branch: str) -> list:
                 {"fields": ["id"], "limit": 100})
             cash_method_ids = [m["id"] for m in cash_methods]
 
-            # หา orders ที่มี cash payment ไม่ว่ายอดจะ + หรือ - (รับเงินสด, ทอนเงิน, คืนเงินสด)
-            cash_order_ids = []
+            # หา orders ที่มี cash payment + คำนวณยอดเงินสดต่อ order
+            cash_amount_map = {}  # order_id → ยอดเงินสดรวม
             if cash_method_ids:
                 cash_payments = mdl.execute_kw(db, uid, pwd, "pos.payment", "search_read",
                     [[["payment_method_id", "in", cash_method_ids],
                       ["pos_order_id.config_id", "in", config_ids],
                       ["pos_order_id.date_order", ">=", dt_start],
                       ["pos_order_id.date_order", "<", dt_end]]],
-                    {"fields": ["pos_order_id"], "limit": 2000})
-                cash_order_ids = list({p["pos_order_id"][0] for p in cash_payments if p.get("pos_order_id")})
+                    {"fields": ["pos_order_id", "amount"], "limit": 2000})
+                for p in cash_payments:
+                    if not p.get("pos_order_id"):
+                        continue
+                    oid = p["pos_order_id"][0]
+                    cash_amount_map[oid] = cash_amount_map.get(oid, 0) + p.get("amount", 0)
+
+            cash_order_ids = list(cash_amount_map.keys())
 
             domain = [
                 ["config_id", "in", config_ids],
@@ -67,7 +73,7 @@ def get_cash_sales(date: str, branch: str) -> list:
 
             pos_orders = mdl.execute_kw(db, uid, pwd, "pos.order", "search_read",
                 [domain],
-                {"fields": ["name", "partner_id", "amount_total", "date_order"], "limit": 500,
+                {"fields": ["id", "name", "partner_id", "date_order"], "limit": 500,
                  "order": "date_order asc"})
             for o in pos_orders:
                 # แปลง UTC → UTC+7
@@ -79,11 +85,12 @@ def get_cash_sales(date: str, branch: str) -> list:
                     bill_time = dt_local.strftime("%H:%M")
                 except Exception:
                     bill_time = ""
+                cash_amt = cash_amount_map.get(o["id"], 0)
                 items.append({
                     "odoo_ref":      o["name"],
                     "customer_name": o["partner_id"][1] if o.get("partner_id") else "ลูกค้าทั่วไป",
                     "sale_type":     "pos",
-                    "odoo_amount":   o.get("amount_total", 0),
+                    "odoo_amount":   cash_amt,
                     "bill_time":     bill_time,
                 })
 
