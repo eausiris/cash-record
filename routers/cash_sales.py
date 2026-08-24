@@ -5,7 +5,7 @@ from typing import Optional, List
 from datetime import datetime
 from database import get_db
 import models
-from auth import get_current_user
+from auth import get_current_user, require_admin
 from odoo_client import get_cash_sales, get_order_lines
 
 router = APIRouter(prefix="/api/cash-sales", tags=["cash_sales"])
@@ -161,3 +161,51 @@ def confirm_items(
     for s in saved:
         db.refresh(s)
     return [to_out(s) for s in saved]
+
+
+class SaleItemEdit(BaseModel):
+    customer_name: Optional[str] = None
+    odoo_amount: Optional[float] = None
+    adjusted_amount: Optional[float] = None
+    remark: Optional[str] = None
+
+
+@router.put("/{item_id}", response_model=SaleItemOut)
+def edit_item(
+    item_id: int,
+    body: SaleItemEdit,
+    db: Session = Depends(get_db),
+    _=Depends(require_admin),
+):
+    item = db.query(models.CashSaleItem).filter(models.CashSaleItem.id == item_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="ไม่พบรายการ")
+    if item.deposit_id:
+        raise HTTPException(status_code=400, detail="รายการนี้ถูกนำฝากไปแล้ว ไม่สามารถแก้ไขได้")
+    if body.customer_name is not None:
+        item.customer_name = body.customer_name
+    if body.odoo_amount is not None:
+        item.odoo_amount = body.odoo_amount
+    if body.adjusted_amount is not None:
+        item.adjusted_amount = body.adjusted_amount
+    if body.remark is not None:
+        item.remark = body.remark
+    db.commit()
+    db.refresh(item)
+    return to_out(item)
+
+
+@router.delete("/{item_id}")
+def delete_item(
+    item_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(require_admin),
+):
+    item = db.query(models.CashSaleItem).filter(models.CashSaleItem.id == item_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="ไม่พบรายการ")
+    if item.deposit_id:
+        raise HTTPException(status_code=400, detail="รายการนี้ถูกนำฝากไปแล้ว ไม่สามารถลบได้")
+    db.delete(item)
+    db.commit()
+    return {"message": "ลบรายการสำเร็จ"}

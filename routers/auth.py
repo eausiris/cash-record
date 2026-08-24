@@ -3,7 +3,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from database import get_db
 import models
-from auth import verify_password, create_access_token, get_current_user
+from auth import verify_password, hash_password, create_access_token, get_current_user
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
@@ -36,3 +36,23 @@ def me(current_user: models.User = Depends(get_current_user)):
         "full_name": current_user.full_name,
         "is_admin": current_user.is_admin
     }
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+
+@router.post("/change-password")
+def change_password(
+    body: ChangePasswordRequest,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    if not verify_password(body.current_password, current_user.hashed_password):
+        raise HTTPException(status_code=400, detail="รหัสผ่านปัจจุบันไม่ถูกต้อง")
+    if len(body.new_password) < 4:
+        raise HTTPException(status_code=400, detail="รหัสผ่านใหม่ต้องมีอย่างน้อย 4 ตัวอักษร")
+    current_user.hashed_password = hash_password(body.new_password)
+    db.commit()
+    return {"message": "เปลี่ยนรหัสผ่านสำเร็จ"}

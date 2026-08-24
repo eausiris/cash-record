@@ -325,6 +325,7 @@
     <div class="nav-logo">💰 Cash Record <span>ระบบบันทึกเงินสดรายวัน</span></div>
     <div class="nav-right">
       <span class="nav-user" id="nav-user-label">admin</span>
+      <button class="nav-logout" onclick="openChangePassword()" style="color:#c47c00;">🔑 เปลี่ยนรหัสผ่าน</button>
       <button class="nav-logout" onclick="doLogout()">ออกจากระบบ</button>
       <!-- hamburger: mobile only -->
       <button id="hamburger-btn" onclick="toggleHamburger()"
@@ -584,10 +585,11 @@
               <th class="num">ยอด Odoo</th>
               <th class="num">ยอดที่บันทึก</th>
               <th>สถานะ</th>
+              <th id="hist-action-col" style="display:none;"></th>
             </tr>
           </thead>
           <tbody id="history-tbody">
-            <tr><td colspan="8" style="text-align:center;color:#aaa;padding:24px;">ยังไม่มีรายการ</td></tr>
+            <tr><td colspan="9" style="text-align:center;color:#aaa;padding:24px;">ยังไม่มีรายการ</td></tr>
           </tbody>
         </table>
       </div>
@@ -622,6 +624,53 @@
 
   </div><!-- end .page -->
 </div><!-- end app-page -->
+
+<!-- ========== CHANGE PASSWORD MODAL ========== -->
+<div id="chgpwd-modal" class="modal-overlay page-hidden">
+  <div class="modal-box" style="position:relative;padding-top:40px;max-width:380px;">
+    <div style="position:absolute;top:10px;right:12px;display:flex;gap:8px;">
+      <button class="btn btn-secondary btn-sm" onclick="closeModal('chgpwd-modal')">ยกเลิก</button>
+      <button class="btn btn-primary btn-sm" onclick="doChangePassword()">บันทึก</button>
+    </div>
+    <div class="card-title" style="margin-bottom:16px;">🔑 เปลี่ยนรหัสผ่าน</div>
+    <div class="form-field">
+      <label>รหัสผ่านปัจจุบัน</label>
+      <input type="password" id="cpwd-current" style="width:100%;" />
+    </div>
+    <div class="form-field">
+      <label>รหัสผ่านใหม่</label>
+      <input type="password" id="cpwd-new" style="width:100%;" />
+    </div>
+    <div class="form-field" style="margin-bottom:0;">
+      <label>ยืนยันรหัสผ่านใหม่</label>
+      <input type="password" id="cpwd-confirm" style="width:100%;" />
+    </div>
+  </div>
+</div>
+
+<!-- ========== EDIT RECORD MODAL (admin) ========== -->
+<div id="edit-record-modal" class="modal-overlay page-hidden">
+  <div class="modal-box" style="position:relative;padding-top:40px;max-width:440px;">
+    <div style="position:absolute;top:10px;right:12px;display:flex;gap:8px;">
+      <button class="btn btn-secondary btn-sm" onclick="closeModal('edit-record-modal')">ยกเลิก</button>
+      <button class="btn btn-primary btn-sm" onclick="saveEditRecord()">บันทึก</button>
+    </div>
+    <div class="card-title" style="margin-bottom:16px;">✏️ แก้ไขรายการ</div>
+    <input type="hidden" id="er-id" />
+    <div class="form-field">
+      <label>ชื่อลูกค้า / รายการ</label>
+      <input type="text" id="er-customer" style="width:100%;" />
+    </div>
+    <div class="form-field">
+      <label>ยอดเงินสด</label>
+      <input type="number" step="0.01" id="er-amount" style="width:100%;" />
+    </div>
+    <div class="form-field" style="margin-bottom:0;">
+      <label>หมายเหตุ</label>
+      <input type="text" id="er-remark" style="width:100%;" />
+    </div>
+  </div>
+</div>
 
 <!-- ========== ORDER LINES MODAL ========== -->
 <div id="lines-modal" class="modal-overlay page-hidden">
@@ -1477,8 +1526,11 @@ function applyHistFilter() {
   if (fStatus === 'deposited') rows = rows.filter(s => !!s.deposit_id);
 
   const tbody = document.getElementById('history-tbody');
+  const actionCol = document.getElementById('hist-action-col');
+  if (actionCol) actionCol.style.display = isAdmin ? '' : 'none';
+  const cols = isAdmin ? 9 : 8;
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#aaa;padding:24px;">ไม่พบรายการที่ตรงกับการค้นหา</td></tr>';
+    tbody.innerHTML = `<tr><td colspan="${cols}" style="text-align:center;color:#aaa;padding:24px;">ไม่พบรายการที่ตรงกับการค้นหา</td></tr>`;
     return;
   }
   tbody.innerHTML = rows.map(s => `<tr>
@@ -1486,10 +1538,14 @@ function applyHistFilter() {
     <td><span class="badge ${s.branch==='rama3'?'badge-info':'badge-gray'}">${BRANCHES[s.branch].name}</span></td>
     <td style="font-size:12px;color:#555;">${s.odoo_ref}</td>
     <td style="font-size:13px;">${s.customer_name}</td>
-    <td><span class="badge ${s.sale_type==='pos'?'badge-info':'badge-gray'}">${s.sale_type==='pos'?'POS':'Invoice'}</span></td>
+    <td><span class="badge ${s.sale_type==='pos'?'badge-info':'badge-gray'}">${s.sale_type==='pos'?'POS':s.sale_type==='expense'?'ค่าใช้จ่าย':'Invoice'}</span></td>
     <td class="num">${fmt(s.odoo_amount)}</td>
     <td class="num" style="font-weight:500;${s.adjusted_amount!==null?'color:#e67e22;':''}">${fmt(s.recorded_amount)}</td>
     <td>${s.deposit_id?'<span class="badge badge-success">✓ นำฝากแล้ว</span>':'<span class="badge badge-warning">รอนำฝาก</span>'}</td>
+    ${isAdmin ? `<td style="white-space:nowrap;">
+      ${!s.deposit_id ? `<button class="btn btn-secondary btn-sm" onclick="openEditRecord(${s.id})" style="padding:3px 8px;font-size:12px;">✏️</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteRecord(${s.id})" style="padding:3px 8px;font-size:12px;">🗑️</button>` : ''}
+    </td>` : ''}
   </tr>`).join('');
 }
 
@@ -1738,6 +1794,67 @@ async function changeMyPassword() {
 // ===========================
 function closeModal(id) {
   document.getElementById(id).classList.add('page-hidden');
+}
+
+// ===========================
+// CHANGE PASSWORD
+// ===========================
+function openChangePassword() {
+  document.getElementById('cpwd-current').value = '';
+  document.getElementById('cpwd-new').value = '';
+  document.getElementById('cpwd-confirm').value = '';
+  document.getElementById('chgpwd-modal').classList.remove('page-hidden');
+}
+
+async function doChangePassword() {
+  const cur = document.getElementById('cpwd-current').value;
+  const nw  = document.getElementById('cpwd-new').value;
+  const cfm = document.getElementById('cpwd-confirm').value;
+  if (!cur || !nw) { alert('กรุณากรอกรหัสผ่านให้ครบ'); return; }
+  if (nw !== cfm)  { alert('รหัสผ่านใหม่ไม่ตรงกัน'); return; }
+  try {
+    await apiFetch('/api/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify({ current_password: cur, new_password: nw }),
+    });
+    alert('✅ เปลี่ยนรหัสผ่านสำเร็จ');
+    closeModal('chgpwd-modal');
+  } catch(e) { alert('❌ ' + e.message); }
+}
+
+// ===========================
+// ADMIN EDIT / DELETE RECORD
+// ===========================
+function openEditRecord(id) {
+  const s = _histItems.find(x => x.id === id);
+  if (!s) return;
+  document.getElementById('er-id').value = s.id;
+  document.getElementById('er-customer').value = s.customer_name;
+  document.getElementById('er-amount').value = s.odoo_amount;
+  document.getElementById('er-remark').value = s.remark || '';
+  document.getElementById('edit-record-modal').classList.remove('page-hidden');
+}
+
+async function saveEditRecord() {
+  const id = parseInt(document.getElementById('er-id').value);
+  const body = {
+    customer_name: document.getElementById('er-customer').value,
+    odoo_amount:   parseFloat(document.getElementById('er-amount').value),
+    remark:        document.getElementById('er-remark').value,
+  };
+  try {
+    await apiFetch(`/api/cash-sales/${id}`, { method: 'PUT', body: JSON.stringify(body) });
+    closeModal('edit-record-modal');
+    renderHistoryTab();
+  } catch(e) { alert('❌ ' + e.message); }
+}
+
+async function deleteRecord(id) {
+  if (!confirm('ยืนยันการลบรายการนี้?')) return;
+  try {
+    await apiFetch(`/api/cash-sales/${id}`, { method: 'DELETE' });
+    renderHistoryTab();
+  } catch(e) { alert('❌ ' + e.message); }
 }
 document.querySelectorAll('.modal-overlay').forEach(el => {
   el.addEventListener('click', function(e) {
