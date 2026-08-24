@@ -55,30 +55,22 @@ def get_cash_sales(date: str, branch: str) -> list:
                     {"fields": ["pos_order_id"], "limit": 1000})
                 non_cash_order_ids = list({p["pos_order_id"][0] for p in non_cash_payments if p.get("pos_order_id")})
 
+            # Cash orders (not non-cash) OR refunds (negative amount, always include)
+            exclude = non_cash_order_ids if non_cash_order_ids else [-1]
             domain = [
                 ["config_id", "in", config_ids],
                 ["date_order", ">=", dt_start],
                 ["date_order", "<",  dt_end],
                 ["state", "in", ["done", "paid", "invoiced", "return", "returned"]],
+                "|",
+                ["id", "not in", exclude],
+                ["amount_total", "<", 0],
             ]
-            if non_cash_order_ids:
-                domain.append(["id", "not in", non_cash_order_ids])
-
-            # debug: find negative/zero amount orders specifically
-            neg_orders_debug = mdl.execute_kw(db, uid, pwd, "pos.order", "search_read",
-                [[["config_id", "in", config_ids],
-                  ["date_order", ">=", dt_start],
-                  ["date_order", "<",  dt_end],
-                  ["amount_total", "<=", 0]]],
-                {"fields": ["name", "state", "amount_total"], "limit": 100})
-            print(f"DEBUG negative/zero orders: {[(o['name'], o['state'], o['amount_total']) for o in neg_orders_debug]}")
-            print(f"DEBUG non_cash_order_ids count: {len(non_cash_order_ids)}")
 
             pos_orders = mdl.execute_kw(db, uid, pwd, "pos.order", "search_read",
                 [domain],
                 {"fields": ["name", "partner_id", "amount_total", "date_order"], "limit": 500,
                  "order": "date_order asc"})
-            print(f"DEBUG pos_orders after filter: {[(o['name'], o['amount_total']) for o in pos_orders]}")
             for o in pos_orders:
                 # แปลง UTC → UTC+7
                 raw_dt = o.get("date_order", "")
