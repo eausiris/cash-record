@@ -40,31 +40,29 @@ def get_cash_sales(date: str, branch: str) -> list:
         config_ids = [c["id"] for c in configs]
 
         if config_ids:
-            non_cash_methods = mdl.execute_kw(db, uid, pwd, "pos.payment.method", "search_read",
-                [[["journal_id.type", "!=", "cash"]]],
+            # หา cash payment method IDs (journal type = cash)
+            cash_methods = mdl.execute_kw(db, uid, pwd, "pos.payment.method", "search_read",
+                [[["journal_id.type", "=", "cash"]]],
                 {"fields": ["id"], "limit": 100})
-            non_cash_method_ids = [m["id"] for m in non_cash_methods]
+            cash_method_ids = [m["id"] for m in cash_methods]
 
-            non_cash_order_ids = []
-            if non_cash_method_ids:
-                non_cash_payments = mdl.execute_kw(db, uid, pwd, "pos.payment", "search_read",
-                    [[["payment_method_id", "in", non_cash_method_ids],
+            # หา order IDs ที่มีการรับ/คืนเงินสด (pos.payment ที่ใช้ cash method)
+            cash_order_ids = []
+            if cash_method_ids:
+                cash_payments = mdl.execute_kw(db, uid, pwd, "pos.payment", "search_read",
+                    [[["payment_method_id", "in", cash_method_ids],
                       ["pos_order_id.config_id", "in", config_ids],
                       ["pos_order_id.date_order", ">=", dt_start],
                       ["pos_order_id.date_order", "<", dt_end]]],
-                    {"fields": ["pos_order_id"], "limit": 1000})
-                non_cash_order_ids = list({p["pos_order_id"][0] for p in non_cash_payments if p.get("pos_order_id")})
+                    {"fields": ["pos_order_id"], "limit": 2000})
+                cash_order_ids = list({p["pos_order_id"][0] for p in cash_payments if p.get("pos_order_id")})
 
-            # Cash orders (not non-cash) OR refunds (negative amount, always include)
-            exclude = non_cash_order_ids if non_cash_order_ids else [-1]
             domain = [
                 ["config_id", "in", config_ids],
                 ["date_order", ">=", dt_start],
                 ["date_order", "<",  dt_end],
                 ["state", "in", ["done", "paid", "invoiced", "return", "returned"]],
-                "|",
-                ["id", "not in", exclude],
-                ["amount_total", "<", 0],
+                ["id", "in", cash_order_ids if cash_order_ids else [-1]],
             ]
 
             pos_orders = mdl.execute_kw(db, uid, pwd, "pos.order", "search_read",
