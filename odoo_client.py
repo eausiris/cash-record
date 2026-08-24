@@ -62,9 +62,7 @@ def get_cash_sales(date: str, branch: str) -> list:
                 ["date_order", ">=", dt_start],
                 ["date_order", "<",  dt_end],
                 ["state", "in", ["done", "paid", "invoiced", "return", "returned"]],
-                "|",
                 ["id", "in", cash_order_ids if cash_order_ids else [-1]],
-                ["amount_total", "<", 0],
             ]
 
             pos_orders = mdl.execute_kw(db, uid, pwd, "pos.order", "search_read",
