@@ -46,7 +46,7 @@ def get_cash_sales(date: str, branch: str) -> list:
                 {"fields": ["id"], "limit": 100})
             cash_method_ids = [m["id"] for m in cash_methods]
 
-            # หา order IDs ที่มีการรับ/คืนเงินสด (pos.payment ที่ใช้ cash method)
+            # หา orders ที่มี cash payment ไม่ว่ายอดจะ + หรือ - (รับเงินสด, ทอนเงิน, คืนเงินสด)
             cash_order_ids = []
             if cash_method_ids:
                 cash_payments = mdl.execute_kw(db, uid, pwd, "pos.payment", "search_read",
