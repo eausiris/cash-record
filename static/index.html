@@ -480,6 +480,13 @@
               <label style="white-space:nowrap;font-size:13px;color:#555;font-weight:500;">วันที่นำฝาก</label>
               <input type="text" id="dep-date" placeholder="DD/MM/YYYY" style="width:140px;" />
             </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <label style="white-space:nowrap;font-size:13px;color:#c0392b;font-weight:600;">📎 Pay-in Slip *</label>
+              <input type="file" id="dep-slip-input" accept="image/*" style="font-size:13px;max-width:200px;"
+                onchange="previewSlip(this)" />
+              <img id="dep-slip-preview" src="" style="display:none;height:36px;border-radius:4px;border:1px solid #ddd;cursor:pointer;"
+                onclick="document.getElementById('dep-slip-input').click()" title="คลิกเพื่อเปลี่ยนรูป" />
+            </div>
             <button class="btn btn-secondary btn-sm" onclick="printPendingSelection()">🖨️ พิมพ์รายการที่เลือก</button>
             <button class="btn btn-success btn-sm" onclick="confirmDeposit()">✅ บันทึกการนำฝาก</button>
           </div>
@@ -1243,11 +1250,35 @@ function getSelectedGroups() {
   });
 }
 
+function previewSlip(input) {
+  const file = input.files[0];
+  const preview = document.getElementById('dep-slip-preview');
+  if (!file) { preview.style.display = 'none'; return; }
+  const reader = new FileReader();
+  reader.onload = e => { preview.src = e.target.result; preview.style.display = ''; };
+  reader.readAsDataURL(file);
+}
+
+function getSlipBase64() {
+  return new Promise((resolve, reject) => {
+    const input = document.getElementById('dep-slip-input');
+    const file = input?.files?.[0];
+    if (!file) { resolve(null); return; }
+    const reader = new FileReader();
+    reader.onload = e => resolve(e.target.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 async function confirmDeposit() {
   const chosen  = getSelectedGroups();
   const depDate = getDateISO('dep-date');
   if (!chosen.length) { alert('กรุณาเลือกรายการที่จะนำฝากอย่างน้อย 1 กลุ่ม'); return; }
   if (!depDate) { alert('กรุณาระบุวันที่นำฝาก'); return; }
+
+  const slipImage = await getSlipBase64();
+  if (!slipImage) { alert('กรุณาแนบรูปภาพ Pay-in Slip ก่อนบันทึก'); return; }
 
   // Group by branch → one deposit per branch
   const byBranch = {};
@@ -1260,11 +1291,14 @@ async function confirmDeposit() {
     for (const [branch, items] of Object.entries(byBranch)) {
       await apiFetch('/api/deposits', {
         method: 'POST',
-        body: JSON.stringify({ branch, deposit_date: depDate, sale_ids: items.map(x => x.id), note: '' }),
+        body: JSON.stringify({ branch, deposit_date: depDate, sale_ids: items.map(x => x.id), note: '', slip_image: slipImage }),
       });
     }
     const totalItems = chosen.reduce((s,g)=>s+g.items.length, 0);
     const totalAmt   = chosen.reduce((s,g)=>s+g.items.reduce((a,x)=>a+x.recorded_amount,0), 0);
+    // reset slip
+    document.getElementById('dep-slip-input').value = '';
+    document.getElementById('dep-slip-preview').style.display = 'none';
     alert(`✅ บันทึกการนำฝากสำเร็จ!\nวันที่ฝาก: ${fmtDate(depDate)}\nยอดรวม: ${fmt(totalAmt)}\nจำนวน: ${totalItems} รายการ`);
     renderDepositTab();
     renderConfirmedSales();
@@ -1427,7 +1461,13 @@ async function showDepositDetail(depId) {
           <td class="num" style="color:#888;">${(dep.items||[]).length} รายการ</td>
           <td class="num" style="color:#c47c00;font-size:16px;">${fmt(dep.total_amount)}</td>
         </tr></tfoot>
-      </table>`;
+      </table>
+      ${dep.slip_image ? `
+      <div style="margin-top:16px;">
+        <div style="font-size:13px;font-weight:600;color:#555;margin-bottom:8px;">📎 Pay-in Slip</div>
+        <img src="${dep.slip_image}" style="max-width:100%;border-radius:8px;border:1px solid #ddd;cursor:pointer;"
+          onclick="window.open(this.src,'_blank')" title="คลิกเพื่อดูเต็ม" />
+      </div>` : ''}`;
     document.getElementById('deposit-modal').classList.remove('page-hidden');
   } catch(e) {
     alert('❌ ' + e.message);

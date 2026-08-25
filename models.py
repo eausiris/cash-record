@@ -44,6 +44,7 @@ class Deposit(Base):
     total_amount = Column(Float, default=0)
     status       = Column(String(20), default="done")
     note         = Column(Text, default="")
+    slip_image   = Column(Text, nullable=True)   # base64 pay-in slip
     created_by   = Column(String(50))
     created_at   = Column(DateTime, default=datetime.utcnow)
     sale_items   = relationship("CashSaleItem", back_populates="deposit")

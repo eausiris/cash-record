@@ -19,6 +19,7 @@ class DepositCreate(BaseModel):
     deposit_date: str
     sale_ids: List[int]
     note: Optional[str] = ""
+    slip_image: Optional[str] = None  # base64 data URL
 
 
 class SaleItemBrief(BaseModel):
@@ -45,6 +46,7 @@ class DepositOut(BaseModel):
     note: str
     created_by: str
     sale_ids: List[int] = []
+    slip_image: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -61,6 +63,7 @@ def dep_to_out(dep: models.Deposit) -> DepositOut:
         note=dep.note or "",
         created_by=dep.created_by or "",
         sale_ids=[s.id for s in dep.sale_items],
+        slip_image=dep.slip_image,
     )
 
 
@@ -130,12 +133,16 @@ def create_deposit(
         for s in items
     )
 
+    if not body.slip_image:
+        raise HTTPException(status_code=400, detail="กรุณาแนบรูปภาพ Pay-in Slip")
+
     dep = models.Deposit(
         branch=body.branch,
         deposit_date=body.deposit_date,
         total_amount=total,
         status="done",
         note=body.note or "",
+        slip_image=body.slip_image,
         created_by=current.username,
     )
     db.add(dep)

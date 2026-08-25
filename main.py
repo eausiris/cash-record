@@ -42,6 +42,15 @@ def health():
 @app.on_event("startup")
 def startup():
     Base.metadata.create_all(bind=engine)
+    # migrate: add slip_image column if not exists
+    try:
+        with engine.connect() as conn:
+            conn.execute(__import__('sqlalchemy').text(
+                "ALTER TABLE deposits ADD COLUMN IF NOT EXISTS slip_image TEXT"
+            ))
+            conn.commit()
+    except Exception as e:
+        print(f"Migration slip_image: {e}")
     db = SessionLocal()
     try:
         admin = db.query(models.User).filter(models.User.username == "admin").first()
